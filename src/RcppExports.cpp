@@ -231,6 +231,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// CRGRTCM_GH2
+Rcpp::List CRGRTCM_GH2(Eigen::VectorXd THETA, Eigen::MatrixXd EXAMS_GRADES, Eigen::MatrixXd EXAMS_DAYS, Eigen::MatrixXd EXAMS_SET, Eigen::MatrixXd EXAMS_OBSFLAG, Eigen::VectorXd MAX_DAY, Eigen::VectorXd OUTCOME, Eigen::MatrixXd EXT_COVARIATES, Eigen::VectorXd YEAR_FIRST, Eigen::VectorXd YEAR_LAST, Eigen::VectorXd YEAR_LAST_EXAM, Eigen::MatrixXd GRID, Eigen::VectorXd WEIGHTS, const unsigned int YB, const unsigned int N_GRADES, const unsigned int N_EXAMS, const bool GRFLAG, const bool ROTGRID);
+RcppExport SEXP _crirt_CRGRTCM_GH2(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP MAX_DAYSEXP, SEXP OUTCOMESEXP, SEXP EXT_COVARIATESSEXP, SEXP YEAR_FIRSTSEXP, SEXP YEAR_LASTSEXP, SEXP YEAR_LAST_EXAMSEXP, SEXP GRIDSEXP, SEXP WEIGHTSSEXP, SEXP YBSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP GRFLAGSEXP, SEXP ROTGRIDSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_SET(EXAMS_SETSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type OUTCOME(OUTCOMESEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXT_COVARIATES(EXT_COVARIATESSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_FIRST(YEAR_FIRSTSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_LAST(YEAR_LASTSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_LAST_EXAM(YEAR_LAST_EXAMSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type GRID(GRIDSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type WEIGHTS(WEIGHTSSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type YB(YBSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
+    Rcpp::traits::input_parameter< const bool >::type ROTGRID(ROTGRIDSEXP);
+    rcpp_result_gen = Rcpp::wrap(CRGRTCM_GH2(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, OUTCOME, EXT_COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, YB, N_GRADES, N_EXAMS, GRFLAG, ROTGRID));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_pGreaterGrades
 Rcpp::List cpp_pGreaterGrades(const unsigned int GRADE, const unsigned int EXAM, Eigen::Map<Eigen::VectorXd> THETA, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double ABILITY, const bool LOGFLAG);
 RcppExport SEXP _crirt_cpp_pGreaterGrades(SEXP GRADESEXP, SEXP EXAMSEXP, SEXP THETASEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP ABILITYSEXP, SEXP LOGFLAGSEXP) {
@@ -497,6 +525,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_crirt_CCR", (DL_FUNC) &_crirt_CCR, 9},
     {"_crirt_CRGRTCM_EM", (DL_FUNC) &_crirt_CRGRTCM_EM, 20},
     {"_crirt_cpp_EM", (DL_FUNC) &_crirt_cpp_EM, 21},
+    {"_crirt_CRGRTCM_GH2", (DL_FUNC) &_crirt_CRGRTCM_GH2, 18},
     {"_crirt_cpp_pGreaterGrades", (DL_FUNC) &_crirt_cpp_pGreaterGrades, 7},
     {"_crirt_cpp_pGrade", (DL_FUNC) &_crirt_cpp_pGrade, 7},
     {"_crirt_cpp_pTimeExam", (DL_FUNC) &_crirt_cpp_pTimeExam, 10},

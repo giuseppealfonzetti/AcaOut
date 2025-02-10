@@ -3,6 +3,7 @@
 export(CCR)
 export(CRGRTCM_EM)
 export(CRGRTCM_GH)
+export(CRGRTCM_GH2)
 export(CRGRTCM_complete_obs)
 export(GRTCM_GH)
 export(GRTCM_complete_obs)

@@ -1,0 +1,499 @@
+---
+title: Fit with EM
+author: Giuseppe Alfonzetti
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Show the code"
+    code-tools: true
+execute: 
+  cache: true
+---
+
+## Setup
+
+Install and load
+```{r}
+#devtools::install_github("giuseppealfonzetti/crirt")
+# load the package
+library(crirt) |> suppressPackageStartupMessages()
+library(tidyverse) |> suppressPackageStartupMessages()
+```
+
+Load the data 
+```{r}
+test_path <- ifelse(dir.exists('test_assets/'), 'test_assets/', 'tests/testthat/test_assets/')
+IRTdata <- qs::qread(file = paste0(test_path,'irtdata.qs'))
+CRdata <- qs::qread(file = paste0(test_path,'crdata.qs'))
+```
+
+Reorganise the data. This new object is then used as input in model-fitting functions.
+
+```{r}
+dat <- dataRestruct(DATA_IRT=IRTdata, DATA_CR=CRdata)
+dat$outcome[218] <- 1 # student with dropout after finishing all exams
+
+```
+
+Create the quadrature grid and the corresponding weights
+```{r}
+nq <- 10
+gq <- statmod::gauss.quad.prob(nq, dist="normal")
+nodes <- gq$nodes
+weights <- gq$weights
+nodes <- as.matrix(expand.grid(nodes, nodes))
+weights <- expand.grid(weights, weights)
+weights <- apply(weights, 1, prod)
+```
+
+## Fitting the model
+
+Fit an initial graded response time censored (GRTC) model via EM.
+
+```{r grtcEM}
+tictoc::tic()
+grtcEM <- fit_EM(
+  DATA = dat,
+  GRID=nodes,
+  WEIGHTS=weights,
+  M_MAX_ITER = 100,
+  MAX_ITER = 15,
+  TOL=1e-3,
+  MOD = "grtc"
+)
+tictoc::toc()
+
+saveRDS(grtcEM, file = "grtcEM.rds")
+```
+
+Use GRTC estimates to initialise the EM of the full model
+
+```{r fullEM}
+
+fitCCR <- crirt::fit_CCR(DATA=dat, PAR_START = grtcEM$fit$par, LATMAT = compute_map(grtcEM, TIDY = FALSE))
+par_start <- grtcEM$fit$par
+par_start[(dat$dim_irt+3):(dat$dim_irt+dat$dim_cr+2)] <- fitCCR$fit$par
+
+tictoc::tic()
+fullEM <- fit_EM(
+  DATA = dat,
+  GRID=nodes,
+  WEIGHTS=weights,
+  M_MAX_ITER = 100,
+  MAX_ITER = 50,
+  TOL=1e-5,
+  MOD = "full",
+  THETA_START = par_start
+)
+tictoc::toc()
+saveRDS(fullEM, file = "fullEM.rds")
+
+```
+
+Finalise the estimation using BFGS. While improving on the accuracy of the estimates, it also provides an approximation of the inverse negative Hessian.
+
+```{r fullBFGS}
+tictoc::tic()
+fullBFGS <- fit_BFGS(
+  DATA = dat,
+  GRID=nodes,
+  WEIGHTS=weights,
+  MOD = "full",
+  THETA_START = fullEM$fit$par
+)
+tictoc::toc()
+saveRDS(fullBFGS, file = "fullBFGS.rds")
+
+```
+
+## Compute standard errors
+
+Compute the asymptotic standard errors
+
+```{r fullSE}
+fullSE <- compute_stderr(fullBFGS, TIDY = TRUE)
+
+DT::datatable(fullSE[["se"]], filter = "top") |>
+    DT::formatRound(columns=c('par', 'se', 'lb', 'ub', 'ub'), digits=3)
+```
+
+## PLOTS
+
+### Latent Score Map Estimates
+
+```{r fullMAP}
+fullMAP <- compute_map(fullBFGS)
+fullMAP |>
+  bind_cols(outcome=fullBFGS$data$outcome) |>
+    mutate(outcome = factor(outcome, levels=0:3, labels=c("enrolled", "graduation", "dropout", "transfer"))) |>
+  ggplot(aes(x=ability, y=speed))+
+  geom_point(aes(col=outcome)) +
+  scale_color_viridis_d()+
+  theme_bw() +
+  labs(col="Outcome:")+
+  lims(x=c(-1,5), y=c(-1,2))+
+  theme(legend.position = 'bottom')
+```
+
+### Grades response curves by exam
+
+```{r}
+resCurves_tib <- tibble(ability = seq(-3,3,length.out=300)) |>
+  expand_grid(grade = 0:fullBFGS$data$n_grades, itemID = fullBFGS$data$exams_labs) |>
+  mutate(prob = pmap_dbl(list(ability, grade, itemID), function(A, G, ID){
+    crirt::cpp_pGrade(GRADE = G,
+           EXAM = (which(fullBFGS$data$exams_labs==ID)-1),
+           THETA = c(fullBFGS$fit$par, rep(NA, dat$dim_cr)),
+           N_GRADES = fullBFGS$data$n_grades,
+           N_EXAMS = fullBFGS$data$n_exams,
+           ABILITY = A,
+           LOGFLAG=FALSE)$prob
+  }))
+
+resCurves_tib |>
+  ggplot(aes(x = ability, y = prob, col = as.factor(grade))) +
+  facet_wrap(~itemID) +
+  geom_line() +
+  scale_color_viridis_d() +
+  theme_bw() +
+  labs(col = 'Grade') +
+  theme(legend.position = 'bottom')
+```
+
+### Grades and times parameters
+
+Plot slopes
+
+```{r}
+fullSE[["se"]] |>
+  filter(group!='latent', type %in% c("slope")) |>
+  ggplot(aes( y = reorder(group, desc(par)))) +
+  geom_point(aes(x = par), size = 1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgrey")+
+  geom_linerange(aes(xmin = lb, xmax = ub)) +
+  facet_wrap(~type, scales = "free") +
+  theme_bw()+
+  labs(x = "", y = "")
+```
+
+Time related params
+
+```{r}
+fullSE[["se"]] |>
+  filter(group!='latent', type %in% c("time_loc", "time_invsd")) |>
+  ggplot(aes( y = reorder(group, desc(par)))) +
+    # geom_vline(xintercept = 0, linetype = "dashed", color = "darkgrey")+
+  geom_point(aes(x = par), size = 1) +
+  geom_linerange(aes(xmin = lb, xmax = ub)) +
+  facet_wrap(~type, scales = "free") +
+  theme_bw()+
+  labs(x = "", y = "")
+```
+
+Grades thresholds
+
+```{r}
+fullSE[["se"]] |>
+  filter(group!='latent', type %in% fullBFGS$data$grades_labs) |>
+  ggplot(aes( y = group)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgrey")+
+  geom_point(aes(x = par, alpha = if_else(sig,1,.3)), size = 1) +
+  geom_linerange(aes(xmin = lb, xmax = ub, alpha = if_else(sig,1,.3))) +
+  facet_wrap(~type, scales = "free") +
+  theme_bw()+
+  labs(x = "", y = "") +
+  theme(legend.position = "none")
+```
+
+
+### Competing risks probabilities
+
+Suppose now to specify a given study plan. For example
+
+```{r}
+todo_exams <- dat$todoMat[1,]
+todo_exams_idx <- as.numeric(which(dat$todoMat[1,]))
+todo_exams
+```
+
+We can now plot the predicted competing risk probabilities by taking into account the probability of passing all exams by a given year
+
+```{r}
+cr_grid <- expand_grid(
+  ability = seq(-1,3, by=1),
+  speed = seq(-.2,.2, by=.2),
+  year = 1:5
+)
+
+theta_chosen <- fullBFGS$fit$par
+out_tib <- cr_grid |>
+  mutate(
+    pL = pmap_dbl(list(year, ability, speed), function(year, ability, speed){
+
+      pL <- prod(sapply(todo_exams_idx, function(exam){
+        cpp_pTimeExam(
+          EXAM=exam,
+          DAY=year*365+180,
+          THETA=theta_chosen,
+          N_GRADES=fullBFGS$data$n_grades,
+          N_EXAMS=fullBFGS$data$n_exams,
+          SPEED=speed,
+          ABILITY=ability,
+          CDFFLAG=TRUE,
+          ROTATED=FALSE,
+          LOGFLAG=FALSE)$prob*
+          cpp_pGreaterGrades(
+            GRADE=1,
+            EXAM=exam,
+            THETA=theta_chosen,
+            N_GRADES=fullBFGS$data$n_grades,
+            N_EXAMS=fullBFGS$data$n_exams,
+            ABILITY=ability,
+            LOGFLAG=FALSE)$prob}))-
+        prod(sapply(todo_exams_idx, function(exam){
+          cpp_pTimeExam(
+            EXAM=exam,
+            DAY=(year-1)*365+180,
+            THETA=theta_chosen,
+            N_GRADES=fullBFGS$data$n_grades,
+            N_EXAMS=fullBFGS$data$n_exams,
+            SPEED=speed,
+            ABILITY=ability,
+            CDFFLAG=TRUE,
+            ROTATED=FALSE,
+            LOGFLAG=FALSE)$prob*
+            cpp_pGreaterGrades(
+              GRADE=1,
+              EXAM=exam,
+              THETA=theta_chosen,
+              N_GRADES=fullBFGS$data$n_grades,
+              N_EXAMS=fullBFGS$data$n_exams,
+              ABILITY=ability,
+              LOGFLAG=FALSE)$prob}))
+    }),
+    survival_prev = pmap_dbl(list(year, ability, speed), function(year, ability, speed){
+
+      if(year==1){
+        return(1)
+      }else{
+        prod(sapply(1:(year-1), function(yr){
+
+          pL <- prod(sapply(todo_exams_idx, function(exam){
+            cpp_pTimeExam(
+              EXAM=exam,
+              DAY=yr*365+180,
+              THETA=theta_chosen,
+              N_GRADES=fullBFGS$data$n_grades,
+              N_EXAMS=fullBFGS$data$n_exams,
+              SPEED=speed,
+              ABILITY=ability,
+              CDFFLAG=TRUE,
+              ROTATED=FALSE,
+              LOGFLAG=FALSE)$prob*
+              cpp_pGreaterGrades(
+                GRADE=1,
+                EXAM=exam,
+                THETA=theta_chosen,
+                N_GRADES=fullBFGS$data$n_grades,
+                N_EXAMS=fullBFGS$data$n_exams,
+                ABILITY=ability,
+                LOGFLAG=FALSE)$prob}))
+
+          haz_g <- pL*cpp_hazard(
+            OUTCOME = 1,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          haz_d <- (1-pL)*cpp_hazard(
+            OUTCOME = 2,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          haz_t <- (1-pL)*cpp_hazard(
+            OUTCOME = 3,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          return(1-haz_g-haz_d-haz_t)
+        }))
+
+      }
+      }),
+    enrollment = pmap_dbl(list(year, ability, speed), function(year, ability, speed){
+
+
+        prod(sapply(1:(year), function(yr){
+
+          pL <- prod(sapply(todo_exams_idx, function(exam){
+            cpp_pTimeExam(
+              EXAM=exam,
+              DAY=yr*365+180,
+              THETA=theta_chosen,
+              N_GRADES=fullBFGS$data$n_grades,
+              N_EXAMS=fullBFGS$data$n_exams,
+              SPEED=speed,
+              ABILITY=ability,
+              CDFFLAG=TRUE,
+              ROTATED=FALSE,
+              LOGFLAG=FALSE)$prob*
+              cpp_pGreaterGrades(
+                GRADE=1,
+                EXAM=exam,
+                THETA=theta_chosen,
+                N_GRADES=fullBFGS$data$n_grades,
+                N_EXAMS=fullBFGS$data$n_exams,
+                ABILITY=ability,
+                LOGFLAG=FALSE)$prob}))
+
+          haz_g <- pL*cpp_hazard(
+            OUTCOME = 1,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          haz_d <- (1-pL)*cpp_hazard(
+            OUTCOME = 2,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          haz_t <- (1-pL)*cpp_hazard(
+            OUTCOME = 3,
+            YEAR= yr,
+            THETA=theta_chosen,
+            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            YB=fullBFGS$data$yb,
+            LOGFLAG=FALSE)$prob
+
+          return(1-haz_g-haz_d-haz_t)
+        }))
+
+
+    }),
+
+    graduation = pmap_dbl(list(year, ability, speed, survival_prev),
+                            function(year, ability, speed, survival_prev){
+
+      pL <- prod(sapply(todo_exams_idx, function(exam){
+            cpp_pTimeExam(
+              EXAM=exam,
+              DAY=year*365+180,
+              THETA=theta_chosen,
+              N_GRADES=fullBFGS$data$n_grades,
+              N_EXAMS=fullBFGS$data$n_exams,
+              SPEED=speed,
+              ABILITY=ability,
+              CDFFLAG=TRUE,
+              ROTATED=FALSE,
+              LOGFLAG=FALSE)$prob*
+              cpp_pGreaterGrades(
+                GRADE=1,
+                EXAM=exam,
+                THETA=theta_chosen,
+                N_GRADES=fullBFGS$data$n_grades,
+                N_EXAMS=fullBFGS$data$n_exams,
+                ABILITY=ability,
+                LOGFLAG=FALSE)$prob}))
+      hg <- cpp_hazard(
+              OUTCOME = 1,
+              YEAR= year,
+              THETA=theta_chosen,
+              COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+              YB=fullBFGS$data$yb,
+              LOGFLAG=FALSE)$prob
+
+      return(hg*pL*survival_prev)
+    }),
+    dropout = pmap_dbl(list(year, ability, speed, survival_prev),
+                            function(year, ability, speed, survival_prev){
+
+                              pL <- prod(sapply(todo_exams_idx, function(exam){
+                                cpp_pTimeExam(
+                                  EXAM=exam,
+                                  DAY=year*365+180,
+                                  THETA=theta_chosen,
+                                  N_GRADES=fullBFGS$data$n_grades,
+                                  N_EXAMS=fullBFGS$data$n_exams,
+                                  SPEED=speed,
+                                  ABILITY=ability,
+                                  CDFFLAG=TRUE,
+                                  ROTATED=FALSE,
+                                  LOGFLAG=FALSE)$prob*
+                                  cpp_pGreaterGrades(
+                                    GRADE=1,
+                                    EXAM=exam,
+                                    THETA=theta_chosen,
+                                    N_GRADES=fullBFGS$data$n_grades,
+                                    N_EXAMS=fullBFGS$data$n_exams,
+                                    ABILITY=ability,
+                                    LOGFLAG=FALSE)$prob}))
+                              hd <- cpp_hazard(
+                                OUTCOME = 2,
+                                YEAR= year,
+                                THETA=theta_chosen,
+                                COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+                                YB=fullBFGS$data$yb,
+                                LOGFLAG=FALSE)$prob
+
+                              return(hd*(1-pL)*survival_prev)
+                            }),
+    transfer = pmap_dbl(list(year, ability, speed, survival_prev),
+                         function(year, ability, speed, survival_prev){
+
+                           pL <- prod(sapply(todo_exams_idx, function(exam){
+                             cpp_pTimeExam(
+                               EXAM=exam,
+                               DAY=year*365+180,
+                               THETA=theta_chosen,
+                               N_GRADES=fullBFGS$data$n_grades,
+                               N_EXAMS=fullBFGS$data$n_exams,
+                               SPEED=speed,
+                               ABILITY=ability,
+                               CDFFLAG=TRUE,
+                               ROTATED=FALSE,
+                               LOGFLAG=FALSE)$prob*
+                               cpp_pGreaterGrades(
+                                 GRADE=1,
+                                 EXAM=exam,
+                                 THETA=theta_chosen,
+                                 N_GRADES=fullBFGS$data$n_grades,
+                                 N_EXAMS=fullBFGS$data$n_exams,
+                                 ABILITY=ability,
+                                 LOGFLAG=FALSE)$prob}))
+                           ht <- cpp_hazard(
+                             OUTCOME = 3,
+                             YEAR= year,
+                             THETA=theta_chosen,
+                             COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+                             YB=fullBFGS$data$yb,
+                             LOGFLAG=FALSE)$prob
+
+                           return(ht*(1-pL)*survival_prev)
+                         })
+    )
+
+
+out_tib |>
+  group_by(ability, speed) |>
+  mutate_at(c("graduation", "dropout", "transfer"), cumsum) |>
+  pivot_longer(cols=any_of(c("graduation", "enrollment", "dropout", "transfer")), names_to = "outcome", values_to = "cumprob") |>
+  ggplot(aes(x=year, y=cumprob, col=as.factor(outcome)))+
+  facet_grid(ability~speed, labeller = "label_both")+
+  geom_step()+
+  theme_bw()+
+  labs(col="Outcome")
+```

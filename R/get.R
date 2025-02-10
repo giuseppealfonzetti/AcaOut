@@ -79,7 +79,7 @@ get_fitted_outcome <- function(FIT){
         return(as_tibble(t(pout)))
       }else{
         pout <- sapply(0:3, function(outcome){
-          exp(CRGRTCM_GH(
+          exp(CRGRTCM_GH2(
             THETA = FIT$fit$par,
             EXAMS_GRADES = t(as.matrix(FIT$data$gradesMat[ID,])),
             EXAMS_DAYS = t(as.matrix(FIT$data$timeMat[ID,])),

@@ -137,3 +137,4 @@ test_that("Check gradient derivative with node rotation", {
     fit$gr[1:dim_irt_lat]
   )
 })
+

@@ -15,14 +15,17 @@
 Rcpp::List cpp_pGreaterGrades(
     const unsigned int GRADE,
     const unsigned int EXAM,
-    Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> THETA_IRT,
+    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
     const double ABILITY,
-    const bool LOGFLAG){
+    const bool LOGFLAG,
+    const bool LATPARFLAG){
 
-  double prob = exams::pGreaterGrades(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pGreaterGrades(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY);
+  double prob = exams::pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pGreaterGrades2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,
@@ -37,14 +40,17 @@ Rcpp::List cpp_pGreaterGrades(
 Rcpp::List cpp_pGrade(
     const unsigned int GRADE,
     const unsigned int EXAM,
-    Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> THETA_IRT,
+    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
     const double ABILITY,
-    const bool LOGFLAG){
+    const bool LOGFLAG,
+    const bool LATPARFLAG){
 
-  double prob = exams::pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY);
+  double prob = exams::pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pGrade2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,
@@ -59,17 +65,19 @@ Rcpp::List cpp_pGrade(
 Rcpp::List cpp_pTimeExam(
     const unsigned int EXAM,
     const double DAY,
-    Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> THETA_IRT,
+    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
     const double SPEED,
     const double ABILITY,
     const bool CDFFLAG,
-    const bool ROTATED,
-    const bool LOGFLAG){
+    const bool LOGFLAG,
+    const bool LATPARFLAG){
 
-  double prob=exams::pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED, LOGFLAG);
+  double prob=exams::pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pTimeExam2(EXAM, DAY, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, LATPARFLAG, LOGFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,

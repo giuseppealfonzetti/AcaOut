@@ -1,12 +1,23 @@
 n_grades <- 4L
-n_exams <- 3L
-n_cov <- 1L
-yb <- 3
-dim_cr <- 2*(yb+n_cov+2)+1
-dim_irt_lat <- n_exams*(n_grades+3)+2
+n_exams  <- 3L
+n_cov    <- 10L
+yb       <- 5L
+
+dim_irt <- n_exams*(n_grades+3)
+dim_lat <- 2+2*n_cov
+dim_cr  <- 2*(yb+2)+1
+
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- c(rnorm(dim_irt_lat),rep(NA, dim_cr))
+labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
+
+set.seed(123)
+theta_irt <- rnorm(dim_irt)
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_cr <- rnorm(dim_cr)
+theta <- c(theta_irt, theta_lat, theta_cr)
+
+X <- rnorm(n_cov)
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
@@ -15,28 +26,47 @@ parList <- parVec2List(
   YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
-mat <- parList$irt
 
+mat <- irtVec2Mat(
+  THETA_IRT = theta_irt,
+  N_GRADES = n_grades,
+  N_EXAMS = n_exams,
+  LABS_EXAMS = labs_exams,
+  LABS_GRADES = labs_grades
+)
+
+
+
+
+############################
 RpGreaterGrades <- function(GRADE, EXAM,
                              THETA,
                              N_GRADES,
                              N_EXAMS,
                              ABILITY,
                             LOGFLAG,
-                            OUT="prob"){
+                            OUT="prob",
+                            LATPARFLAG){
+
+  ab <- ABILITY
+  if(LATPARFLAG & n_cov>0) ab <- ab + t(THETA[(dim_irt+3):(dim_irt+2+n_cov)])%*%X
+
   obj <- cpp_pGreaterGrades(
     GRADE=GRADE,
     EXAM=EXAM,
-    THETA=THETA,
+    THETA_IRT=THETA[1:dim_irt],
+    THETA_LAT=THETA[(dim_irt+1):(dim_irt+dim_lat)],
+    COVARIATES = X,
     N_GRADES=N_GRADES,
     N_EXAMS=N_EXAMS,
-    ABILITY=ABILITY,
-    LOGFLAG=LOGFLAG)
+    ABILITY=ab,
+    LOGFLAG=LOGFLAG,
+    LATPARFLAG=LATPARFLAG)
 
   if(OUT=="prob"){
     return(obj$prob)
   }else{
-    return(obj$gr[1:dim_irt_lat])
+    return(obj$gr[1:(dim_irt+dim_lat)])
   }
 }
 
@@ -46,25 +76,34 @@ RpGrade <- function(GRADE, EXAM,
                     N_EXAMS,
                     ABILITY,
                     LOGFLAG,
-                    OUT="prob"){
+                    OUT="prob",
+                    LATPARFLAG){
+  ab <- ABILITY
+  if(LATPARFLAG & n_cov>0) ab <- ab + t(THETA[(dim_irt+3):(dim_irt+2+n_cov)])%*%X
+
   obj <- cpp_pGrade(
     GRADE=GRADE,
     EXAM=EXAM,
-    THETA=THETA,
+    THETA_IRT=THETA[1:dim_irt],
+    THETA_LAT=THETA[(dim_irt+1):(dim_irt+dim_lat)],
+    COVARIATES = X,
     N_GRADES=N_GRADES,
     N_EXAMS=N_EXAMS,
-    ABILITY=ABILITY,
-    LOGFLAG=LOGFLAG)
+    ABILITY=ab,
+    LOGFLAG=LOGFLAG,
+    LATPARFLAG=LATPARFLAG)
 
   if(OUT=="prob"){
     return(obj$prob)
   }else{
-    return(obj$gr[1:dim_irt_lat])
+    return(obj$gr[1:(dim_irt+dim_lat)])
   }
 }
 #### test grades probabilities output value and gradient ####
 set.seed(123)
 abilities <- sort(rnorm(3, 0, 2), decreasing = T)
+
+# without structural parameters
 for (abi_index in 1:length(abilities)) {
   for (grade in 1:n_grades) {
     for (exam in 1:n_exams) {
@@ -75,7 +114,8 @@ for (abi_index in 1:length(abilities)) {
         N_GRADES = n_grades,
         N_EXAMS = n_exams,
         ABILITY = abilities[abi_index],
-        LOGFLAG = FALSE
+        LOGFLAG = FALSE,
+        LATPARFLAG=FALSE
       )
       lprobG <- RpGrade(
         GRADE = grade,
@@ -84,7 +124,8 @@ for (abi_index in 1:length(abilities)) {
         N_GRADES = n_grades,
         N_EXAMS = n_exams,
         ABILITY = abilities[abi_index],
-        LOGFLAG = TRUE
+        LOGFLAG = TRUE,
+        LATPARFLAG=FALSE
       )
 
       lprobGG <- RpGreaterGrades(
@@ -94,7 +135,8 @@ for (abi_index in 1:length(abilities)) {
         N_GRADES = n_grades,
         N_EXAMS = n_exams,
         ABILITY = abilities[abi_index],
-        LOGFLAG = TRUE
+        LOGFLAG = TRUE,
+        LATPARFLAG=FALSE
       )
 
       test_that("pGreaterGrades() val", {
@@ -119,7 +161,8 @@ for (abi_index in 1:length(abilities)) {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
 
         test_that(paste0("pGreaterGrades() decreases with higher grades | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
@@ -138,7 +181,8 @@ for (abi_index in 1:length(abilities)) {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
         tmp <- log(probGG-probnextGG)
         test_that("pGrade() log",{
@@ -158,7 +202,8 @@ for (abi_index in 1:length(abilities)) {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index-1],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
 
         # test_that(paste0("pGreaterGrades() decreases with lower ability | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
@@ -179,7 +224,8 @@ for (abi_index in 1:length(abilities)) {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
       }
       grGG <- RpGreaterGrades(
@@ -190,11 +236,12 @@ for (abi_index in 1:length(abilities)) {
         N_EXAMS = n_exams,
         ABILITY = abilities[abi_index],
         OUT="gr",
-        LOGFLAG = FALSE
+        LOGFLAG = FALSE,
+        LATPARFLAG=FALSE
       )
       test_that("pGreaterGrades() gradient",{
         skip_if_not_installed("numDeriv")
-        Rval <- numDeriv::grad(func = FUNprobGG, x = theta[1:dim_irt_lat])
+        Rval <- numDeriv::grad(func = FUNprobGG, x = theta[1:(dim_irt+dim_lat)])
 
         expect_equal(Rval, grGG)
       })
@@ -207,7 +254,8 @@ for (abi_index in 1:length(abilities)) {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
       }
       grG <- RpGrade(
@@ -218,17 +266,185 @@ for (abi_index in 1:length(abilities)) {
         N_EXAMS = n_exams,
         ABILITY = abilities[abi_index],
         OUT="gr",
-        LOGFLAG = FALSE
+        LOGFLAG = FALSE,
+        LATPARFLAG=FALSE
       )
       test_that("pGrade() gradient",{
         skip_if_not_installed("numDeriv")
-        Rval <- numDeriv::grad(func = FUNprobG, x = theta[1:dim_irt_lat])
+        Rval <- numDeriv::grad(func = FUNprobG, x = theta[1:(dim_irt+dim_lat)])
 
         expect_equal(Rval, grG)
       })
     }
   }
 }
+
+# with structural parameters
+for (abi_index in 1:length(abilities)) {
+  for (grade in 1:n_grades) {
+    for (exam in 1:n_exams) {
+
+      probGG <- RpGreaterGrades(
+        GRADE = grade,
+        EXAM = exam-1,
+        THETA = theta,
+        N_GRADES = n_grades,
+        N_EXAMS = n_exams,
+        ABILITY = abilities[abi_index],
+        LOGFLAG = FALSE,
+        LATPARFLAG=TRUE
+      )
+      lprobG <- RpGrade(
+        GRADE = grade,
+        EXAM = exam-1,
+        THETA = theta,
+        N_GRADES = n_grades,
+        N_EXAMS = n_exams,
+        ABILITY = abilities[abi_index],
+        LOGFLAG = TRUE,
+        LATPARFLAG=TRUE
+      )
+
+      lprobGG <- RpGreaterGrades(
+        GRADE = grade,
+        EXAM = exam-1,
+        THETA = theta,
+        N_GRADES = n_grades,
+        N_EXAMS = n_exams,
+        ABILITY = abilities[abi_index],
+        LOGFLAG = TRUE,
+        LATPARFLAG=TRUE
+      )
+
+
+
+      if(grade>1){
+        probprevGG <- RpGreaterGrades(
+          GRADE = grade-1,
+          EXAM = exam-1,
+          THETA = theta,
+          N_GRADES = n_grades,
+          N_EXAMS = n_exams,
+          ABILITY = abilities[abi_index],
+          LOGFLAG = FALSE,
+          LATPARFLAG=TRUE
+        )
+
+        test_that(paste0("pGreaterGrades() decreases with higher grades | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
+          expect_true(probprevGG>probGG)
+        })
+
+
+
+      }
+
+      if(grade < n_grades){
+        probnextGG <- RpGreaterGrades(
+          GRADE = grade+1,
+          EXAM = exam-1,
+          THETA = theta,
+          N_GRADES = n_grades,
+          N_EXAMS = n_exams,
+          ABILITY = abilities[abi_index],
+          LOGFLAG = FALSE,
+          LATPARFLAG=TRUE
+        )
+        tmp <- log(probGG-probnextGG)
+        test_that("pGrade() log",{
+          expect_equal(lprobG, tmp)
+        })
+      }else{
+        test_that("pGrade() log",{
+          expect_equal(lprobG, lprobGG)
+        })
+      }
+
+      if(abi_index>1){
+        probprevGG <- RpGreaterGrades(
+          GRADE = grade,
+          EXAM = exam-1,
+          THETA = theta,
+          N_GRADES = n_grades,
+          N_EXAMS = n_exams,
+          ABILITY = abilities[abi_index],
+          LOGFLAG = FALSE,
+          LATPARFLAG=TRUE
+        )
+
+        # test_that(paste0("pGreaterGrades() decreases with lower ability | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
+        #   expect_true(probprevGG>probGG)
+        # })
+      }
+
+
+
+
+
+
+      FUNprobGG <-function(PAR){
+        RpGreaterGrades(
+          GRADE = grade,
+          EXAM = exam-1,
+          THETA = PAR,
+          N_GRADES = n_grades,
+          N_EXAMS = n_exams,
+          ABILITY = abilities[abi_index],
+          LOGFLAG = FALSE,
+          LATPARFLAG=TRUE
+        )
+      }
+      grGG <- RpGreaterGrades(
+        GRADE = grade,
+        EXAM = exam-1,
+        THETA = theta,
+        N_GRADES = n_grades,
+        N_EXAMS = n_exams,
+        ABILITY = abilities[abi_index],
+        OUT="gr",
+        LOGFLAG = FALSE,
+        LATPARFLAG=TRUE
+      )
+      test_that("pGreaterGrades() gradient",{
+        skip_if_not_installed("numDeriv")
+        Rval <- numDeriv::grad(func = FUNprobGG, x = theta[1:(dim_irt+dim_lat)])
+
+        expect_equal(Rval, grGG)
+      })
+
+      FUNprobG <-function(PAR){
+        RpGrade(
+          GRADE = grade,
+          EXAM = exam-1,
+          THETA = PAR,
+          N_GRADES = n_grades,
+          N_EXAMS = n_exams,
+          ABILITY = abilities[abi_index],
+          LOGFLAG = FALSE,
+          LATPARFLAG=TRUE
+        )
+      }
+      grG <- RpGrade(
+        GRADE = grade,
+        EXAM = exam-1,
+        THETA = theta,
+        N_GRADES = n_grades,
+        N_EXAMS = n_exams,
+        ABILITY = abilities[abi_index],
+        OUT="gr",
+        LOGFLAG = FALSE,
+        LATPARFLAG=TRUE
+      )
+      test_that("pGrade() gradient",{
+        skip_if_not_installed("numDeriv")
+        Rval <- numDeriv::grad(func = FUNprobG, x = theta[1:(dim_irt+dim_lat)])
+
+        expect_equal(Rval, grG)
+      })
+    }
+  }
+}
+
+
 
 test_that("pGreaterGrades() log extreme ability", {
 
@@ -243,7 +459,8 @@ test_that("pGreaterGrades() log extreme ability", {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = TRUE
+          LOGFLAG = TRUE,
+          LATPARFLAG=FALSE
         )
 
         # check for finite values
@@ -274,7 +491,8 @@ test_that("check pGrade() probability space", {
           N_GRADES = n_grades,
           N_EXAMS = n_exams,
           ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
+          LOGFLAG = FALSE,
+          LATPARFLAG=FALSE
         )
 
 

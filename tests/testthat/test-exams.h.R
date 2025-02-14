@@ -73,7 +73,7 @@ FUNEXAM <- function(x, OBSFLAG, LATPARFLAG=FALSE, OUT="ll"){
 set.seed(333)
 for (ability in rnorm(3,0,1)) {
   for (speed in rnorm(3,0,1)) {
-    for (day in runif(3, 100, 1000)) {
+    for (day in sample(100:1000, 3, replace = TRUE)) {
       for (exam in 1:n_exams) {
         for (grade in 1:n_grades) {
           pG <- cpp_pGrade(GRADE = grade, EXAM = exam-1, THETA = theta, COVARIATES = X, N_GRADES = n_grades, N_EXAMS = n_exams, ABILITY = ability, LOGFLAG = FALSE, LATPARFLAG = FALSE)$prob
@@ -140,23 +140,23 @@ for (i in 1:n) {
 
 #### sim times ####
 set.seed(123)
-timeMat <- matrix(0, n, n_exams)
+timeMat <- matrix(NA, n, n_exams)
 for (i in 1:n) {
   for (e in 1:n_exams) {
     timeMat[i,e] <- exp(
       rnorm(1,
             mean = mat[e, n_grades + 2]-latMat[i,2],
-            sd = 1/mat[e, n_grades + 3])
+            sd = 1/mat[e, n_grades + 3])+1
     )
   }
 }
 timeMat[gradesMat==0] <- NA
-
+timeMat <- ceiling(timeMat)
 #### mat to-do ####
 todoMat <- matrix(1, n, n_exams)
 
 #### censoring ####
-max_day <- max(timeMat, na.rm = TRUE)+10
+max_day <- as.integer(max(timeMat, na.rm = TRUE)+10)
 timeMat[timeMat>max_day] <- NA
 obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0

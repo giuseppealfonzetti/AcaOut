@@ -45,32 +45,33 @@ Rcpp::List GRTCM_GH(
     const bool ROTGRID = true
 ){
   double ll = 0;
-  Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
   const int n = EXAMS_GRADES.rows();
   const int nq = GRID.rows();
   const int n_cov = COVARIATES.cols();
   const int dim_irt = N_EXAMS*(N_GRADES+3);
   const int dim_lat = 2+2*n_cov;
+  Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
 
+  Eigen::MatrixXd grid=GRID;
   if(ROTGRID){
     Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
-    GRID = GRID * L.transpose();
-    Eigen::MatrixXd B = THETA.segment(dim_irt+2, 2*n_cov).reshaped(2,n_cov);
-    // Eigen::MatrixXd B(2,n_cov);
-    // B.row(0)=THETA.segment(dim_irt+2, n_cov);
-    // B.row(1)=THETA.segment(dim_irt+2+n_cov, n_cov);
-
-    GRID += B*COVARIATES;
-    Rcpp::Rcout<<"B:\n"<< B<<"\n";
-    Rcpp::Rcout<<"GRID:\n"<< GRID<<"\n";
-
+    grid = grid * L.transpose();
 
   }
 
   Eigen::MatrixXd llMat(n,nq);
   for(int i = 0; i < n; i++){
+
+    double mu_i_ability = 0;
+    double mu_i_speed = 0;
+    if(ROTGRID){
+      mu_i_ability = COVARIATES.row(i)*THETA.segment(dim_irt+2, n_cov);
+      mu_i_speed = COVARIATES.row(i)*THETA.segment(dim_irt+2+n_cov, n_cov);
+    }
+
+
 
     // Initialize conditional IRT model
     GRTC_MOD irt_mod(THETA,
@@ -88,11 +89,11 @@ Rcpp::List GRTCM_GH(
     Eigen::MatrixXd gr = Eigen::MatrixXd::Zero(THETA.size(), nq);
 
     for(int point = 0; point < nq; point++){
-      f(point) = exp(irt_mod.ll(GRID(point, 0), GRID(point, 1)));
-      llMat(i,point)=(irt_mod.ll(GRID(point, 0), GRID(point, 1)));
+      f(point) = exp(irt_mod.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed));
+      llMat(i,point)=(irt_mod.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed));
 
       if(GRFLAG){
-        Eigen::VectorXd gr_point = irt_mod.grll(GRID(point, 0), GRID(point, 1));
+        Eigen::VectorXd gr_point = irt_mod.grll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
         gr_point *= f(point);
         gr.col(point) = gr_point;
       }
@@ -108,6 +109,7 @@ Rcpp::List GRTCM_GH(
 
   Rcpp::List output =
     Rcpp::List::create(
+      Rcpp::Named("grid") = grid,
       Rcpp::Named("llMat") = llMat,
       Rcpp::Named("gr") = grll,
       Rcpp::Named("ll") = ll

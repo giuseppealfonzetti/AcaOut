@@ -342,6 +342,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_grtcm_class
+Rcpp::List cpp_grtcm_class(Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::VectorXd> EXAMS_GRADES, Eigen::Map<Eigen::VectorXd> EXAMS_DAYS, Eigen::Map<Eigen::VectorXd> EXAMS_SET, Eigen::Map<Eigen::VectorXd> EXAMS_OBSFLAG, Eigen::Map<Eigen::VectorXd> COVARIATES, const double ABILITY, const double SPEED, const int MAX_DAY, const int N_GRADES, const int N_EXAMS, const bool LATPARFLAG);
+RcppExport SEXP _crirt_cpp_grtcm_class(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP COVARIATESSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP MAX_DAYSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP LATPARFLAGSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type EXAMS_SET(EXAMS_SETSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type COVARIATES(COVARIATESSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const int >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< const int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type LATPARFLAG(LATPARFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_grtcm_class(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, ABILITY, SPEED, MAX_DAY, N_GRADES, N_EXAMS, LATPARFLAG));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_survival
 Rcpp::List cpp_survival(const unsigned int YEAR_FIRST, const unsigned int YEAR_LAST, Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::VectorXd> COVARIATES, const unsigned int YB, const unsigned int YEAR_LAST_EXAM, const bool LOGFLAG);
 RcppExport SEXP _crirt_cpp_survival(SEXP YEAR_FIRSTSEXP, SEXP YEAR_LASTSEXP, SEXP THETASEXP, SEXP COVARIATESSEXP, SEXP YBSEXP, SEXP YEAR_LAST_EXAMSEXP, SEXP LOGFLAGSEXP) {
@@ -538,6 +560,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_crirt_cpp_pGrade", (DL_FUNC) &_crirt_cpp_pGrade, 9},
     {"_crirt_cpp_pTimeExam", (DL_FUNC) &_crirt_cpp_pTimeExam, 11},
     {"_crirt_cpp_examLik", (DL_FUNC) &_crirt_cpp_examLik, 12},
+    {"_crirt_cpp_grtcm_class", (DL_FUNC) &_crirt_cpp_grtcm_class, 12},
     {"_crirt_cpp_survival", (DL_FUNC) &_crirt_cpp_survival, 7},
     {"_crirt_cpp_hazard", (DL_FUNC) &_crirt_cpp_hazard, 6},
     {"_crirt_cpp_outcome", (DL_FUNC) &_crirt_cpp_outcome, 8},

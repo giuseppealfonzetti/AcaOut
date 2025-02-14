@@ -147,4 +147,84 @@ Eigen::VectorXd LAT::grll(const double ABILITY, const double SPEED){
 
   return(gr);
 }
+
+
+
+class LAT2{
+private:
+  Eigen::VectorXd _theta;
+  Eigen::VectorXd _covariates;
+  int _dim_irt;
+  int _dim_lat;
+  int _n_cov;
+  bool _latparflag;
+  Eigen::MatrixXd _L = Eigen::MatrixXd::Zero(2,2);
+  Eigen::MatrixXd _B;
+  Eigen::VectorXd _mean;
+
+public:
+  LAT2(const Eigen::Ref<const Eigen::VectorXd> THETA,
+       const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
+       const int DIM_IRT,
+       const bool LATPARFLAG):
+  _theta(THETA), _covariates(COVARIATES), _dim_irt(DIM_IRT),  _latparflag(LATPARFLAG){
+    _n_cov = _covariates.size();
+    _dim_lat = 2+2*_n_cov;
+    _L(0,0)= 1;
+    _L(1,0)= _theta(_dim_irt);
+    _L(1,1)= _theta(_dim_irt+1);
+    _B = THETA.segment(_dim_irt+2, 2*_n_cov).reshaped(2,_n_cov);
+    _mean = _B * COVARIATES;
+  }
+
+  double ll(const double ABILITY, const double SPEED);
+
+  Eigen::VectorXd grll(const double ABILITY, const double SPEED);
+};
+
+double LAT2::ll(const double ABILITY, const double SPEED){
+  double ll;
+  Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
+  Eigen::MatrixXd cov = _L*_L.transpose();
+  double det = cov.determinant();
+  Eigen::MatrixXd inv_cov = cov.inverse();
+  ll = neglog2pi-0.5*log(det) - 0.5 * double((lat-_mean).transpose()*inv_cov*(lat-_mean));
+  return(ll);
+}
+
+Eigen::VectorXd LAT2::grll(const double ABILITY, const double SPEED){
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
+  Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
+  Eigen::MatrixXd L{{1,0},{_theta(_dim_irt), _theta(_dim_irt+1)}};
+  Eigen::MatrixXd iL = L.inverse();
+  Eigen::MatrixXd iS = iL.transpose()*iL;
+
+  Eigen::MatrixXd Z1 = Eigen::MatrixXd::Zero(2,2); Z1(1,0) = 1;
+  Eigen::MatrixXd Z2 = Eigen::MatrixXd::Zero(2,2); Z2(1,1) = 1;
+
+  // M1 + M1.transpose is dS^-1 wrt l1
+  Eigen::MatrixXd M1 = -iL.transpose()*Z1.transpose()*iL.transpose()*iL;
+  Eigen::MatrixXd M2 = -iL.transpose()*Z2.transpose()*iL.transpose()*iL;
+
+  gr(_dim_irt)   = -(iL*Z1).trace() - .5*lat.transpose()*(M1 + M1.transpose())*lat;
+  gr(_dim_irt+1) = -(iL*Z2).trace() - .5*lat.transpose()*(M2 + M2.transpose())*lat;
+
+  if(_latparflag){
+    double ability_raw = ABILITY-(_theta.segment(_dim_irt+2, _n_cov).transpose()*-_covariates);
+    double speed_raw = (SPEED -_theta(_dim_irt)*ability_raw-(_theta.segment(_dim_irt+2+_n_cov, _n_cov).transpose()*_covariates))/_theta(_dim_irt+1);
+
+
+    Eigen::VectorXd dlat1(2); dlat1 << 0, ability_raw;
+    Eigen::VectorXd dlat2(2); dlat2 << 0, speed_raw;
+
+    gr(_dim_irt) -= dlat1.transpose()*iS*lat;
+    gr(_dim_irt+1) -= dlat2.transpose()*iS*lat;
+
+
+  }
+
+
+  return(gr);
+}
+
 #endif

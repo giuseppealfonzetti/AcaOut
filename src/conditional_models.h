@@ -103,9 +103,9 @@ public:
           Eigen::VectorXd EXAMS_SET,
           Eigen::VectorXd EXAMS_OBSFLAG,
           Eigen::VectorXd COVARIATES,
-          const unsigned int MAX_DAY,
-          const unsigned int N_GRADES,
-          const unsigned int N_EXAMS,
+          const int MAX_DAY,
+          const int N_GRADES,
+          const int N_EXAMS,
           const bool LATPARFLAG):
   _theta(THETA),
   _exams_grades(EXAMS_GRADES),
@@ -145,7 +145,7 @@ double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
   for(unsigned int exam = 0; exam < _n_exams; exam++){
 
     if(_exams_set[exam]){
-      out += exams::examLik(exam,
+      double ell = exams::examLik(exam,
                      _exams_grades(exam),
                      _exams_days(exam),
                      _max_day,
@@ -154,6 +154,7 @@ double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
                      _n_grades,
                      _n_exams,
                      ABILITY, SPEED, 1);
+      out+=ell;
 
     }
   }

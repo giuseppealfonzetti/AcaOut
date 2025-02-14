@@ -192,16 +192,17 @@ irtMat <- parList$irt
 latMat <- matrix(c(rnorm((n-1)*2), -5,5),n,2, byrow = TRUE)
 #### sim times ####
 set.seed(123)
-timeMat <- matrix(0, n, n_exams)
+timeMat <- matrix(NA, n, n_exams)
 for (i in 1:n) {
   for (e in 1:n_exams) {
     timeMat[i,e] <- exp(
       rnorm(1,
-            mean = irtMat[e, n_grades + 2]-latMat[i,2],
-            sd = 1/irtMat[e, n_grades + 3])
+            mean = mat[e, n_grades + 2]-latMat[i,2],
+            sd = 1/mat[e, n_grades + 3])+1
     )
   }
 }
+timeMat <- ceiling(timeMat)
 
 
 #### checks #####

@@ -25,7 +25,7 @@ namespace exams{
       const unsigned int EXAM,
       const unsigned int GRADE,
       const double DAY,
-      const double MAX_DAY,
+      const int MAX_DAY,
       const bool OBSFLAG,
       const Eigen::Ref<const Eigen::VectorXd> THETA,
       const unsigned int N_GRADES,
@@ -36,6 +36,7 @@ namespace exams{
   ){
     double out, logpExam, logpTime;
 
+
     if(OBSFLAG){
       logpExam = exams::pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
       logpTime = exams::pTimeExam(EXAM, DAY, THETA, N_GRADES,  N_EXAMS, SPEED, false, true);
@@ -43,6 +44,10 @@ namespace exams{
     }else{
       logpExam = exams::pGreaterGrades(1, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
       logpTime = exams::pTimeExam(EXAM, MAX_DAY, THETA, N_GRADES,  N_EXAMS, SPEED, true, true);
+      // Rcpp::Rcout<<"\nexamLik |:"<< ABILITY <<", "<< SPEED<<"\n";
+      // Rcpp::Rcout<<"MAX_DAY |:"<< MAX_DAY <<"\n";
+      // Rcpp::Rcout << "logpExam "<< logpExam<< " | logpTime "<< logpTime<<"\n";
+
       out = log1mexp(-logpExam-logpTime);
       out = std::max(-10000.0, out);  // avoid log(0)
     }

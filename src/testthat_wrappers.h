@@ -111,6 +111,68 @@ Rcpp::List cpp_examLik(
   return output;
 }
 
+//' @export
+// [[Rcpp::export]]
+Rcpp::List cpp_grtcm_class(
+    Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> EXAMS_GRADES,
+    Eigen::Map<Eigen::VectorXd> EXAMS_DAYS,
+    Eigen::Map<Eigen::VectorXd> EXAMS_SET,
+    Eigen::Map<Eigen::VectorXd> EXAMS_OBSFLAG,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
+    const double ABILITY,
+    const double SPEED,
+    const int MAX_DAY,
+    const int N_GRADES,
+    const int N_EXAMS,
+    const bool LATPARFLAG
+){
+
+  const int n_cov = COVARIATES.size();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int dim_lat = 2+2*n_cov;
+
+  double ab = ABILITY;
+  double sp = SPEED;
+  // if(LATPARFLAG){
+  //   Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+  //   points =  L*points;
+  //   Eigen::MatrixXd B = THETA.segment(dim_irt+2, 2*n_cov).reshaped(2,n_cov);
+  //
+  //   points += B*COVARIATES;
+  //
+  //   Rcpp::Rcout<<"B:\n"<< B<<"\n";
+  //   Rcpp::Rcout<<"GRID:\n"<< points.transpose()<<"\n";
+  // }
+
+  // Rcpp::Rcout<<"Class |:\n"<< ab <<", "<< sp<<"\n";
+  GRTC_MOD obj(
+    THETA,
+    EXAMS_GRADES,
+    EXAMS_DAYS,
+    EXAMS_SET,
+    EXAMS_OBSFLAG,
+    COVARIATES,
+    MAX_DAY,
+    N_GRADES,
+    N_EXAMS,
+    LATPARFLAG
+  );
+
+
+  double ll = obj.ll(ab, sp);
+  Eigen::VectorXd grll=obj.grll(ab, sp);
+
+  Rcpp::List output = Rcpp::List::create(
+    // Rcpp::Named("L")=L,
+    Rcpp::Named("ll")=ll,
+    Rcpp::Named("grll")=grll
+  );
+
+  return output;
+
+}
+
 
 
 // COMPETING RISK //

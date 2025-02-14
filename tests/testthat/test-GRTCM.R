@@ -2,7 +2,6 @@ n <- 10
 set.seed(123)
 
 ### gen params ####
-### gen params ####
 n_grades <- 4L
 n_exams  <- 3L
 n_cov    <- 2
@@ -80,6 +79,145 @@ obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0
 
 
+##### TEST GRTCM CLASS #####
+RFUN <- function(x, ID, COVARIATES=X[ID,], LATPARFLAG, LAT_POINTS, GRFLAG=FALSE){
+  ab <- LAT_POINTS[1]
+  sp <- LAT_POINTS[2]
+  if(LATPARFLAG){
+    ab <- LAT_POINTS[1] + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
+    sp <- x[dim_irt+1]*LAT_POINTS[1] + x[dim_irt+2]*LAT_POINTS[2] + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+  }
+  obj <- cpp_grtcm_class(
+    THETA = x,
+    EXAMS_GRADES = gradesMat[ID,],
+    EXAMS_DAYS = timeMat[ID,],
+    EXAMS_SET = todoMat[ID,],
+    EXAMS_OBSFLAG = obsMat[ID,],
+    COVARIATES = COVARIATES,
+    ABILITY = ab,
+    SPEED = sp,
+    MAX_DAY = max_day,
+    N_GRADES = n_grades,
+    N_EXAMS = n_exams,
+    LATPARFLAG = LATPARFLAG
+  )
+
+  if(GRFLAG){
+    obj$grll
+  }else{
+    obj$ll
+  }
+}
+
+
+examLik <- function(x, SPEED, ABILITY, LATPARFLAG, COVARIATES, OUT="ll",  ...){
+  ab <- ABILITY
+  sp <- SPEED
+  if(LATPARFLAG){
+    ab <- ABILITY + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
+    sp <- x[dim_irt+1]*ABILITY + x[dim_irt+2]*SPEED + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+  }
+
+
+  obj <- cpp_examLik(
+    THETA = x,
+    N_GRADES = n_grades,
+    N_EXAMS = n_exams,
+    ABILITY = ab,
+    SPEED = sp,
+    COVARIATES = COVARIATES,
+    LATPARFLAG=LATPARFLAG,
+
+    ...
+  )
+  if(OUT=="ll"){
+    return(obj$ll)
+  }else{
+    return(obj$grll[1:(dim_irt+dim_lat)])
+  }
+}
+#### TEST GRTCM QUADRATURE ####
+for (i in 1:n) {
+  ll=0
+  for (exam in 1:n_exams) {
+
+    ell <- examLik(
+      x = theta, MAX_DAY = max_day,
+      EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
+      SPEED = latMat[i,2], ABILITY = latMat[i,1], LATPARFLAG = FALSE,
+      OBSFLAG = obsMat[i, exam], COVARIATES= X[i,],
+      OUT="ll"
+    )
+
+    # cat("\nR| Exam", exam, ":", ell, "\n")
+    ll <- ll + ell
+
+
+
+  }
+
+
+  test_that(paste0("Check student ",i, " full exam list likelihood"), {
+    expect_equal(
+      RFUN(x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,]),
+      ll
+    )
+
+
+
+  })
+
+  ### LATPARFLAG = TRUE
+  ll=0
+  for (exam in 1:n_exams) {
+
+    ell <- examLik(
+      x = theta, MAX_DAY = max_day,
+      EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
+      SPEED = latMat[i,2], ABILITY = latMat[i,1], LATPARFLAG = TRUE,
+      OBSFLAG = obsMat[i, exam], COVARIATES= X[i,],
+      OUT="ll"
+    )
+
+    # cat("\nR| Exam", exam, ":", ell, "\n")
+    ll <- ll + ell
+
+
+
+  }
+
+
+  test_that(paste0("Check student ",i, " full exam list likelihood"), {
+    expect_equal(
+      RFUN(x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,]),
+      ll
+    )
+
+
+
+  })
+
+}
+
+#### Check gr ####
+
+for (i in 1:n) {
+  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+    expect_equal(
+      numDeriv::grad(RFUN, x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,]),
+      RFUN(x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,], GRFLAG=TRUE)
+    )
+  })
+
+  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+    expect_equal(
+      numDeriv::grad(RFUN, x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,]),
+      RFUN(x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,], GRFLAG=TRUE)
+    )
+  })
+
+}
+
 ##### TESTS ####
 RFUN <- function(x, ROTATE){
   GRTCM_GH(
@@ -122,8 +260,8 @@ test_that("Check gradient derivative without node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta[1:(dim_irt+dim_lat)], ROTATE = FALSE),
-    fit$gr[1:(dim_irt+dim_lat)]
+    numDeriv::grad(RFUN, x = theta, ROTATE = FALSE),
+    fit$gr
   )
 })
 
@@ -146,8 +284,8 @@ test_that("Check gradient derivative with node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta[1:(dim_irt+dim_lat)], ROTATE = TRUE),
-    fit$gr[1:(dim_irt+dim_lat)],
+    numDeriv::grad(RFUN, x = theta, ROTATE = TRUE),
+    fit$gr,
     tolerance = 1e-4
   )
 })

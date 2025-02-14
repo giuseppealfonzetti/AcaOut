@@ -34,6 +34,7 @@ double GRTCM_complete_obs(
     Eigen::VectorXd EXAMS_DAYS,
     Eigen::VectorXd EXAMS_OBSFLAG,
     Eigen::VectorXd EXAMS_SET,
+    Eigen::VectorXd COVARIATES,
     const unsigned int MAX_DAY,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
@@ -45,7 +46,7 @@ double GRTCM_complete_obs(
 
   // Initialize conditional IRT model
   GRTC_MOD irt_mod(THETA, EXAMS_GRADES, EXAMS_DAYS,
-                  EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, false);
+                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
 
   double cll = irt_mod.cll(ABILITY, SPEED);
 
@@ -65,7 +66,7 @@ double CRGRTCM_complete_obs(
     const unsigned int YEAR_FIRST,
     const unsigned int YEAR_LAST,
     const unsigned int YEAR_LAST_EXAM,
-    Eigen::VectorXd EXT_COVARIATES,
+    Eigen::VectorXd COVARIATES,
     const unsigned int MAX_DAY,
     const unsigned int YB,
     const unsigned int N_GRADES,
@@ -78,10 +79,10 @@ double CRGRTCM_complete_obs(
 
   // Initialize conditional IRT model
   GRTC_MOD irt_mod(THETA, EXAMS_GRADES, EXAMS_DAYS,
-                  EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, false);
+                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
 
   // Initialize conditional CR model
-  CR_MOD cr_mod(THETA, OUTCOME, EXT_COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, false);
+  CR_MOD cr_mod(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, false);
 
   double cll = irt_mod.cll(ABILITY, SPEED) + cr_mod.ll(ABILITY, SPEED);
 

@@ -35,29 +35,42 @@ Rcpp::List GRTCM_GH(
     Eigen::MatrixXd EXAMS_DAYS,
     Eigen::MatrixXd EXAMS_SET,
     Eigen::MatrixXd EXAMS_OBSFLAG,
+    Eigen::MatrixXd COVARIATES,
     Eigen::VectorXd MAX_DAY,
     Eigen::MatrixXd GRID,
     Eigen::VectorXd WEIGHTS,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
+    const int N_GRADES,
+    const int N_EXAMS,
     const bool GRFLAG = true,
     const bool ROTGRID = true
 ){
   double ll = 0;
   Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
-  const unsigned int n = EXAMS_GRADES.rows();
-  const unsigned int nq = GRID.rows();
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int n = EXAMS_GRADES.rows();
+  const int nq = GRID.rows();
+  const int n_cov = COVARIATES.cols();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int dim_lat = 2+2*n_cov;
 
 
   if(ROTGRID){
     Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
     GRID = GRID * L.transpose();
+    Eigen::MatrixXd B = THETA.segment(dim_irt+2, 2*n_cov).reshaped(2,n_cov);
+    // Eigen::MatrixXd B(2,n_cov);
+    // B.row(0)=THETA.segment(dim_irt+2, n_cov);
+    // B.row(1)=THETA.segment(dim_irt+2+n_cov, n_cov);
+
+    GRID += B*COVARIATES;
+    Rcpp::Rcout<<"B:\n"<< B<<"\n";
+    Rcpp::Rcout<<"GRID:\n"<< GRID<<"\n";
+
+
   }
 
   Eigen::MatrixXd llMat(n,nq);
-  for(unsigned int i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){
 
     // Initialize conditional IRT model
     GRTC_MOD irt_mod(THETA,
@@ -65,6 +78,7 @@ Rcpp::List GRTCM_GH(
                      EXAMS_DAYS.row(i),
                      EXAMS_SET.row(i),
                      EXAMS_OBSFLAG.row(i),
+                     COVARIATES.row(i),
                      MAX_DAY(i),
                      N_GRADES,
                      N_EXAMS,
@@ -73,7 +87,7 @@ Rcpp::List GRTCM_GH(
     Eigen::VectorXd f(nq);
     Eigen::MatrixXd gr = Eigen::MatrixXd::Zero(THETA.size(), nq);
 
-    for(unsigned int point = 0; point < nq; point++){
+    for(int point = 0; point < nq; point++){
       f(point) = exp(irt_mod.ll(GRID(point, 0), GRID(point, 1)));
       llMat(i,point)=(irt_mod.ll(GRID(point, 0), GRID(point, 1)));
 
@@ -119,18 +133,18 @@ Rcpp::List CRGRTCM_GH(
     Eigen::VectorXd YEAR_LAST_EXAM,
     Eigen::MatrixXd GRID,
     Eigen::VectorXd WEIGHTS,
-    const unsigned int YB,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
+    const int YB,
+    const int N_GRADES,
+    const int N_EXAMS,
     const bool GRFLAG = true,
     const bool ROTGRID = true
 ){
   double ll = 0;
   Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
-  const unsigned int n = EXAMS_GRADES.rows();
-  const unsigned int nq = GRID.rows();
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int n = EXAMS_GRADES.rows();
+  const int nq = GRID.rows();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
 
 
 
@@ -141,7 +155,7 @@ Rcpp::List CRGRTCM_GH(
 
   Eigen::MatrixXd irt_grid(n,nq);
   Eigen::MatrixXd cr_grid(n,nq);
-for(unsigned int i = 0; i < n; i++){
+for(int i = 0; i < n; i++){
 
     // Initialize conditional IRT model
     GRTC_MOD irt_mod(THETA,
@@ -149,6 +163,7 @@ for(unsigned int i = 0; i < n; i++){
                      EXAMS_DAYS.row(i),
                      EXAMS_SET.row(i),
                      EXAMS_OBSFLAG.row(i),
+                     EXT_COVARIATES.row(i),
                      MAX_DAY(i),
                      N_GRADES,
                      N_EXAMS,
@@ -167,7 +182,7 @@ for(unsigned int i = 0; i < n; i++){
     Eigen::VectorXd f(nq);
     Eigen::MatrixXd gr = Eigen::MatrixXd::Zero(THETA.size(), nq);
 
-    for(unsigned int point = 0; point < nq; point++){
+    for(int point = 0; point < nq; point++){
       double irt_cll = irt_mod.ll(GRID(point, 0), GRID(point, 1));
       double cr_cll  = cr_mod.ll( GRID(point, 0), GRID(point, 1));
 
@@ -211,14 +226,14 @@ Rcpp::List CCR(
     Eigen::VectorXd YEAR_LAST,
     Eigen::VectorXd YEAR_LAST_EXAM,
     Eigen::MatrixXd LATMAT,
-    const unsigned int YB,
+    const int YB,
     const bool GRFLAG = true
 ){
-  const unsigned int n = OUTCOME.size();
+  const int n = OUTCOME.size();
   double ll = 0;
   Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
-  for(unsigned int i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){
 
     // Initialize conditional CR model
     CR_MOD cr_mod(THETA,
@@ -263,27 +278,27 @@ Rcpp::List CRGRTCM_EM(
     Eigen::VectorXd YEAR_LAST_EXAM,
     Eigen::MatrixXd GRID,
     Eigen::VectorXd WEIGHTS,
-    const unsigned int YB,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
-    const unsigned int M_MAX_ITER,
-    const unsigned int MAX_ITER,
+    const int YB,
+    const int N_GRADES,
+    const int N_EXAMS,
+    const int M_MAX_ITER,
+    const int MAX_ITER,
     const double TOL,
     const std::string MOD
 ){
   double enjll = 0;
   Eigen::VectorXd theta = THETA_START;
 
-  const unsigned int n = EXAMS_GRADES.rows();
-  const unsigned int nq = GRID.rows();
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
-  const unsigned int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
+  const int n = EXAMS_GRADES.rows();
+  const int nq = GRID.rows();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
   std::vector<double> path_enjll; path_enjll.push_back(std::numeric_limits<double>::infinity());
   std::vector<Eigen::VectorXd> path_theta; path_theta.push_back(theta);
 
-  unsigned int last_iter = MAX_ITER;
-  unsigned int convergence = 0;
-  for(unsigned int iter=0; iter < MAX_ITER; iter++){
+  int last_iter = MAX_ITER;
+  int convergence = 0;
+  for(int iter=0; iter < MAX_ITER; iter++){
     Rcpp::checkUserInterrupt();
     Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
     Eigen::MatrixXd grid = GRID * L.transpose();
@@ -372,11 +387,11 @@ Rcpp::List cpp_EM(
     Eigen::VectorXd YEAR_LAST_EXAM,
     Eigen::MatrixXd GRID,
     Eigen::VectorXd WEIGHTS,
-    const unsigned int YB,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
-    const unsigned int M_MAX_ITER,
-    const unsigned int MAX_ITER,
+    const int YB,
+    const int N_GRADES,
+    const int N_EXAMS,
+    const int M_MAX_ITER,
+    const int MAX_ITER,
     const double TOL,
     const std::string MOD,
     const bool VERBOSE
@@ -384,16 +399,16 @@ Rcpp::List cpp_EM(
   double enjll = 0;
   Eigen::VectorXd theta = THETA_START;
 
-  const unsigned int n = EXAMS_GRADES.rows();
-  const unsigned int nq = GRID.rows();
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
-  const unsigned int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
+  const int n = EXAMS_GRADES.rows();
+  const int nq = GRID.rows();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
   std::vector<double> path_enjll; path_enjll.push_back(std::numeric_limits<double>::infinity());
   std::vector<Eigen::VectorXd> path_theta; path_theta.push_back(theta);
 
-  unsigned int last_iter = MAX_ITER;
-  unsigned int convergence = 0;
-  for(unsigned int iter=0; iter < MAX_ITER; iter++){
+  int last_iter = MAX_ITER;
+  int convergence = 0;
+  for(int iter=0; iter < MAX_ITER; iter++){
     Rcpp::checkUserInterrupt();
     Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
     Eigen::MatrixXd grid = GRID * L.transpose();
@@ -483,18 +498,18 @@ Rcpp::List CRGRTCM_GH2(
     Eigen::VectorXd YEAR_LAST_EXAM,
     Eigen::MatrixXd GRID,
     Eigen::VectorXd WEIGHTS,
-    const unsigned int YB,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
+    const int YB,
+    const int N_GRADES,
+    const int N_EXAMS,
     const bool GRFLAG = true,
     const bool ROTGRID = true
 ){
   double ll = 0;
   Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
 
-  const unsigned int n = EXAMS_GRADES.rows();
-  const unsigned int nq = GRID.rows();
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  const int n = EXAMS_GRADES.rows();
+  const int nq = GRID.rows();
+  const int dim_irt = N_EXAMS*(N_GRADES+3);
 
 
 
@@ -505,7 +520,7 @@ Rcpp::List CRGRTCM_GH2(
 
   Eigen::MatrixXd irt_grid(n,nq);
   Eigen::MatrixXd cr_grid(n,nq);
-for(unsigned int i = 0; i < n; i++){
+for(int i = 0; i < n; i++){
 
     // Initialize conditional IRT model
     GRTC_MOD irt_mod(THETA,
@@ -513,6 +528,7 @@ for(unsigned int i = 0; i < n; i++){
                      EXAMS_DAYS.row(i),
                      EXAMS_SET.row(i),
                      EXAMS_OBSFLAG.row(i),
+                     EXT_COVARIATES.row(i),
                      MAX_DAY(i),
                      N_GRADES,
                      N_EXAMS,
@@ -531,7 +547,7 @@ for(unsigned int i = 0; i < n; i++){
     Eigen::VectorXd f(nq);
     Eigen::MatrixXd gr = Eigen::MatrixXd::Zero(THETA.size(), nq);
 
-    for(unsigned int point = 0; point < nq; point++){
+    for(int point = 0; point < nq; point++){
       double irt_cll = irt_mod.ll(GRID(point, 0), GRID(point, 1));
       double cr_cll  = cr_mod.ll( GRID(point, 0), GRID(point, 1));
 

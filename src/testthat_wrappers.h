@@ -15,8 +15,7 @@
 Rcpp::List cpp_pGreaterGrades(
     const unsigned int GRADE,
     const unsigned int EXAM,
-    Eigen::Map<Eigen::VectorXd> THETA_IRT,
-    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> THETA,
     Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
@@ -24,8 +23,8 @@ Rcpp::List cpp_pGreaterGrades(
     const bool LOGFLAG,
     const bool LATPARFLAG){
 
-  double prob = exams::pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pGreaterGrades2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+  double prob = exams::pGreaterGrades(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pGreaterGrades2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,
@@ -40,8 +39,7 @@ Rcpp::List cpp_pGreaterGrades(
 Rcpp::List cpp_pGrade(
     const unsigned int GRADE,
     const unsigned int EXAM,
-    Eigen::Map<Eigen::VectorXd> THETA_IRT,
-    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> THETA,
     Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
@@ -49,8 +47,8 @@ Rcpp::List cpp_pGrade(
     const bool LOGFLAG,
     const bool LATPARFLAG){
 
-  double prob = exams::pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pGrade2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+  double prob = exams::pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pGrade2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,
@@ -65,8 +63,7 @@ Rcpp::List cpp_pGrade(
 Rcpp::List cpp_pTimeExam(
     const unsigned int EXAM,
     const double DAY,
-    Eigen::Map<Eigen::VectorXd> THETA_IRT,
-    Eigen::Map<Eigen::VectorXd> THETA_LAT,
+    Eigen::Map<Eigen::VectorXd> THETA,
     Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
@@ -76,8 +73,8 @@ Rcpp::List cpp_pTimeExam(
     const bool LOGFLAG,
     const bool LATPARFLAG){
 
-  double prob=exams::pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG);
-  Eigen::VectorXd gr=exams::grad::gr_pTimeExam2(EXAM, DAY, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, LATPARFLAG, LOGFLAG);
+  double prob=exams::pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG);
+  Eigen::VectorXd gr=exams::grad::gr_pTimeExam2(EXAM, DAY, THETA, COVARIATES, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, LATPARFLAG, LOGFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("prob")=prob,
@@ -96,14 +93,15 @@ Rcpp::List cpp_examLik(
     const double MAX_DAY,
     const bool OBSFLAG,
     Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
     const double ABILITY,
     const double SPEED,
-    const bool ROTATED
+    const bool LATPARFLAG
 ){
   double ll=exams::examLik(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA, N_GRADES, N_EXAMS, ABILITY, SPEED, true);
-  Eigen::VectorXd grll=exams::grad::grl_examLik(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA, N_GRADES, N_EXAMS, ABILITY, SPEED, ROTATED);
+  Eigen::VectorXd grll=exams::grad::grl_examLik(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, SPEED, LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
     Rcpp::Named("ll")=ll,
@@ -418,6 +416,7 @@ Rcpp::List cpp_mstep2(
                      EXAMS_DAYS.row(i),
                      EXAMS_SET.row(i),
                      EXAMS_OBSFLAG.row(i),
+                     EXT_COVARIATES.row(i),
                      MAX_DAY(i),
                      N_GRADES,
                      N_EXAMS,

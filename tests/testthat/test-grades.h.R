@@ -1,6 +1,6 @@
 n_grades <- 4L
 n_exams  <- 3L
-n_cov    <- 10L
+n_cov    <- 3
 yb       <- 5L
 
 dim_irt <- n_exams*(n_grades+3)
@@ -54,8 +54,7 @@ RpGreaterGrades <- function(GRADE, EXAM,
   obj <- cpp_pGreaterGrades(
     GRADE=GRADE,
     EXAM=EXAM,
-    THETA_IRT=THETA[1:dim_irt],
-    THETA_LAT=THETA[(dim_irt+1):(dim_irt+dim_lat)],
+    THETA=THETA,
     COVARIATES = X,
     N_GRADES=N_GRADES,
     N_EXAMS=N_EXAMS,
@@ -76,17 +75,17 @@ RpGrade <- function(GRADE, EXAM,
                     N_EXAMS,
                     ABILITY,
                     LOGFLAG,
+                    COVARIATES=X,
                     OUT="prob",
                     LATPARFLAG){
   ab <- ABILITY
-  if(LATPARFLAG & n_cov>0) ab <- ab + t(THETA[(dim_irt+3):(dim_irt+2+n_cov)])%*%X
+  if(LATPARFLAG & n_cov>0) ab <- ab + t(THETA[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
 
   obj <- cpp_pGrade(
     GRADE=GRADE,
     EXAM=EXAM,
-    THETA_IRT=THETA[1:dim_irt],
-    THETA_LAT=THETA[(dim_irt+1):(dim_irt+dim_lat)],
-    COVARIATES = X,
+    THETA=THETA,
+    COVARIATES = COVARIATES,
     N_GRADES=N_GRADES,
     N_EXAMS=N_EXAMS,
     ABILITY=ab,

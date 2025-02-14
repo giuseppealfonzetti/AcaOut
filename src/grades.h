@@ -111,8 +111,7 @@ namespace exams::grad{
     Eigen::VectorXd gr_pGreaterGrades2(
          const unsigned int GRADE,
          const unsigned int EXAM,
-         const Eigen::Ref<const Eigen::VectorXd> THETA_IRT,
-         const Eigen::Ref<const Eigen::VectorXd> THETA_LAT,
+         const Eigen::Ref<const Eigen::VectorXd> THETA,
          const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
          const unsigned int N_GRADES,
          const unsigned int N_EXAMS,
@@ -121,24 +120,24 @@ namespace exams::grad{
     ){
       if(EXAM > N_EXAMS) Rcpp::stop("`EXAM` larger than `N_EXAMS`");
       if(GRADE > N_GRADES) Rcpp::stop("`GRADE` larger than `N_GRADES`");
-      const int dim_irt = THETA_IRT.size();
-      const int dim_lat = THETA_LAT.size();
-      const int n_cov   = (dim_lat-2)/2;
+      const int dim_irt = N_EXAMS*(N_GRADES+3);
+      const int n_cov   = COVARIATES.size();
+      const int dim_lat = 2+2*n_cov;
 
 
       Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+dim_lat);
 
-      const double intercept = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 2, EXAM)(GRADE-1);
-      const double coeff = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 1, EXAM)(0);
+      const double intercept = extract_params_irt(THETA, N_GRADES, N_EXAMS, 2, EXAM)(GRADE-1);
+      const double coeff = extract_params_irt(THETA, N_GRADES, N_EXAMS, 1, EXAM)(0);
 
       double pr = exp(-log1pexp(intercept - coeff*ABILITY));
-      std::vector<unsigned int> idx_i = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 2, EXAM);
-      std::vector<unsigned int> idx_c = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 1, EXAM);
+      std::vector<unsigned int> idx_i = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 2, EXAM);
+      std::vector<unsigned int> idx_c = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 1, EXAM);
 
       double val_i = pr - pow(pr,2);
       gr(idx_c[0]) = val_i*ABILITY;
 
-      Eigen::VectorXd tmpi = THETA_IRT.segment(idx_i[0], idx_i[1]).array().exp();
+      Eigen::VectorXd tmpi = THETA.segment(idx_i[0], idx_i[1]).array().exp();
       tmpi(0) = 1;
       tmpi.tail(N_GRADES-GRADE) = Eigen::VectorXd::Zero(N_GRADES-GRADE);
 
@@ -164,8 +163,7 @@ namespace exams::grad{
     Eigen::VectorXd gr_pGrade2(
         const unsigned int GRADE,
         const unsigned int EXAM,
-        const Eigen::Ref<const Eigen::VectorXd> THETA_IRT,
-        const Eigen::Ref<const Eigen::VectorXd> THETA_LAT,
+        const Eigen::Ref<const Eigen::VectorXd> THETA,
         const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
         const unsigned int N_GRADES,
         const unsigned int N_EXAMS,
@@ -173,14 +171,14 @@ namespace exams::grad{
         const bool LATPARFLAG
     ){
       double out;
-      Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA_IRT.size());
+      Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
 
       if(GRADE==N_GRADES){
-           gr = gr_pGreaterGrades2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+           gr = gr_pGreaterGrades2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
       }else if(GRADE==0){
-           gr = - gr_pGreaterGrades2(1, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+           gr = - gr_pGreaterGrades2(1, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
       }else if(GRADE<N_GRADES & GRADE >0){
-           gr = gr_pGreaterGrades2(GRADE, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG) - gr_pGreaterGrades2(GRADE+1, EXAM, THETA_IRT, THETA_LAT, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+           gr = gr_pGreaterGrades2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG) - gr_pGreaterGrades2(GRADE+1, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
       }
 
       return(gr);

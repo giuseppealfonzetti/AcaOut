@@ -60,8 +60,7 @@ namespace exams::grad{
   Eigen::VectorXd gr_pTimeExam2(
        const unsigned int EXAM,
        const double DAY,
-       const Eigen::Ref<const Eigen::VectorXd> THETA_IRT,
-       const Eigen::Ref<const Eigen::VectorXd> THETA_LAT,
+       const Eigen::Ref<const Eigen::VectorXd> THETA,
        const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
        const unsigned int N_GRADES,
        const unsigned int N_EXAMS,
@@ -71,30 +70,31 @@ namespace exams::grad{
        const bool LATPARFLAG,
        const bool LOGFLAG = false
   ){
-    const int dim_irt = THETA_IRT.size();
-    const int dim_lat = THETA_LAT.size();
-    const int n_cov   = (dim_lat-2)/2;
+    const int dim_irt = N_EXAMS*(N_GRADES+3);
+    const int n_cov   = COVARIATES.size();
+    const int dim_lat = 2+2*n_cov;
 
     Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+dim_lat);
     std::vector<double> pars(2);
-    pars[0] = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 3, EXAM)(0);
-    pars[1] = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 4, EXAM)(0);
+    pars[0] = extract_params_irt(THETA, N_GRADES, N_EXAMS, 3, EXAM)(0);
+    pars[1] = extract_params_irt(THETA, N_GRADES, N_EXAMS, 4, EXAM)(0);
     const double mean = pars[0] - SPEED;
     const double sd = 1/pars[1];
 
 
-    std::vector<unsigned int> idx_m = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 3, EXAM);
-    std::vector<unsigned int> idx_v = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 4, EXAM);
+    std::vector<unsigned int> idx_m = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 3, EXAM);
+    std::vector<unsigned int> idx_v = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 4, EXAM);
 
     if(CDFFLAG){
       const double tmp = R::dnorm(pars[1]*(log(DAY)-mean), 0, 1, false);
       gr(idx_m[0]) = -tmp*pars[1];
       gr(idx_v[0]) = tmp*(log(DAY)-mean)*pars[1];
       if(LATPARFLAG){
-        double speed_raw = (SPEED -THETA_LAT(0)*ABILITY-(THETA_LAT.segment(2+n_cov, n_cov).transpose()*COVARIATES))/THETA_LAT(1);
+        double ability_raw = ABILITY-(THETA.segment(dim_irt+2, n_cov).transpose()*COVARIATES);
+        double speed_raw = (SPEED -THETA(dim_irt)*ability_raw-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/THETA(dim_irt+1);
         // Rcpp::Rcout<<speed_raw<<"\n";
 
-        gr(dim_irt) = tmp*pars[1]*ABILITY;
+        gr(dim_irt) = tmp*pars[1]*ability_raw;
         gr(dim_irt+1) = tmp*pars[1]*speed_raw;
         gr.segment(dim_irt+2+n_cov, n_cov) = tmp*pars[1]*COVARIATES;
       }
@@ -104,9 +104,10 @@ namespace exams::grad{
         gr(idx_m[0]) = tmp*pow(pars[1],2)*(log(DAY)-mean);
         gr(idx_v[0]) = (tmp/pars[1] - tmp * pars[1] * pow(log(DAY)-mean, 2))*pars[1];
         if(LATPARFLAG){
-          double speed_raw = (SPEED -THETA_LAT(0)*ABILITY-(THETA_LAT.segment(2+n_cov, n_cov).transpose()*COVARIATES))/THETA_LAT(1);
-          // Rcpp::Rcout<<speed_raw<<"\n";
-          gr(dim_irt) =  -tmp * pow(pars[1],2)*(log(DAY)-mean)*ABILITY;
+          double ability_raw = ABILITY-(THETA.segment(dim_irt+2, n_cov).transpose()*COVARIATES);
+          double speed_raw = (SPEED -THETA(dim_irt)*ability_raw-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/THETA(dim_irt+1);
+
+          gr(dim_irt) =  -tmp * pow(pars[1],2)*(log(DAY)-mean)*ability_raw;
           gr(dim_irt+1) =  -tmp * pow(pars[1],2)*(log(DAY)-mean)*speed_raw;
           gr.segment(dim_irt+2+n_cov, n_cov) = -tmp * pow(pars[1],2)*(log(DAY)-mean)*COVARIATES;
 
@@ -115,10 +116,11 @@ namespace exams::grad{
         gr(idx_v[0]) = 1 - pow(pars[1],2) * pow(log(DAY)-mean, 2);
         gr(idx_m[0]) = pow(pars[1],2)*(log(DAY)-mean);
         if(LATPARFLAG){
-          double speed_raw = (SPEED -THETA_LAT(0)*ABILITY-(THETA_LAT.segment(2+n_cov, n_cov).transpose()*COVARIATES))/THETA_LAT(1);
-          // Rcpp::Rcout<<speed_raw<<"\n";
+          double ability_raw = ABILITY-(THETA.segment(dim_irt+2, n_cov).transpose()*COVARIATES);
+          double speed_raw = (SPEED -THETA(dim_irt)*ability_raw-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/THETA(dim_irt+1);
 
-          gr(dim_irt) =  -pow(pars[1],2)*(log(DAY)-mean)*ABILITY;
+
+          gr(dim_irt) =  -pow(pars[1],2)*(log(DAY)-mean)*ability_raw;
           gr(dim_irt+1) =  -pow(pars[1],2)*(log(DAY)-mean)*speed_raw;
           gr.segment(dim_irt+2+n_cov, n_cov) = -pow(pars[1],2)*(log(DAY)-mean)*COVARIATES;
 
@@ -126,6 +128,7 @@ namespace exams::grad{
       }
 
     }
+
 
     return(gr);
   }

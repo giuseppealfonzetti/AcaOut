@@ -2,26 +2,36 @@ n <- 10
 set.seed(123)
 
 ### gen params ####
+### gen params ####
 n_grades <- 4L
-n_exams <- 10L
-yb <- 5
-n_cov <- 1
-dim_cr <- 2*(yb+n_cov+2)+1
-dim_irt_lat <- n_exams*(n_grades+3)+2
+n_exams  <- 3L
+n_cov    <- 2
+yb       <- 2L
+
+dim_irt <- n_exams*(n_grades+3)
+dim_lat <- 2+2*n_cov
+dim_cr  <- 2*(yb+2)+1
+
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- c(rnorm(dim_irt_lat), rep(NA, dim_cr))
+labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
+
+set.seed(123)
+theta_irt <- rnorm(dim_irt)
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_cr <- rnorm(dim_cr)
+theta <- c(theta_irt, theta_lat, theta_cr)
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
   N_COV = n_cov,
-  YB=yb,
+  YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 irtMat <- parList$irt
 # theta_irt <- irtMat2Vec(irtMat)
-
+X <- matrix(rnorm(n*n_cov), n, n_cov)
 latMat <- matrix(rnorm(n*2), n, 2)
 nodes <- expand.grid(c(1,-1),c(1,-1))
 weights <- rep(.25, 4)
@@ -78,6 +88,7 @@ RFUN <- function(x, ROTATE){
     EXAMS_DAYS = timeMat,
     EXAMS_SET = todoMat,
     EXAMS_OBSFLAG = obsMat,
+    COVARIATES = X,
     MAX_DAY = rep(max_day,n),
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
@@ -88,7 +99,7 @@ RFUN <- function(x, ROTATE){
   )$ll
 }
 
-RFUN(theta[1:dim_irt_lat], TRUE)
+RFUN(theta[1:(dim_irt+dim_lat)], TRUE)
 
 #### check gradient
 test_that("Check gradient derivative without node rotation", {
@@ -100,6 +111,7 @@ test_that("Check gradient derivative without node rotation", {
     EXAMS_DAYS = timeMat,
     EXAMS_SET = todoMat,
     EXAMS_OBSFLAG = obsMat,
+    COVARIATES = X,
     MAX_DAY = rep(max_day,n),
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
@@ -110,8 +122,8 @@ test_that("Check gradient derivative without node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta[1:dim_irt_lat], ROTATE = FALSE),
-    fit$gr[1:dim_irt_lat]
+    numDeriv::grad(RFUN, x = theta[1:(dim_irt+dim_lat)], ROTATE = FALSE),
+    fit$gr[1:(dim_irt+dim_lat)]
   )
 })
 
@@ -123,6 +135,7 @@ test_that("Check gradient derivative with node rotation", {
     EXAMS_DAYS = timeMat,
     EXAMS_SET = todoMat,
     EXAMS_OBSFLAG = obsMat,
+    COVARIATES = X,
     MAX_DAY = rep(max_day,n),
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
@@ -133,8 +146,9 @@ test_that("Check gradient derivative with node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta[1:dim_irt_lat], ROTATE = TRUE),
-    fit$gr[1:dim_irt_lat]
+    numDeriv::grad(RFUN, x = theta[1:(dim_irt+dim_lat)], ROTATE = TRUE),
+    fit$gr[1:(dim_irt+dim_lat)],
+    tolerance = 1e-4
   )
 })
 

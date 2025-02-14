@@ -44,8 +44,7 @@ FUNTIME <- function(x, CDFFLAG, LOGFLAG, SPEED, ABILITY=0, ROTATED=FALSE, OUT="p
   obj <- cpp_pTimeExam(
     EXAM = exam-1,
     DAY = day,
-    THETA_IRT = x[1:dim_irt],
-    THETA_LAT = x[(dim_irt+1):(dim_irt+dim_lat)],
+    THETA = x,
     COVARIATES = X,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
@@ -207,21 +206,23 @@ for (i in 1:n) {
 
 #### checks #####
 
-FUNTIME <- function(x, EXAM, DAY, CDFFLAG, LOGFLAG, SPEED, ABILITY=0, LATPARFLAG=FALSE, OUT="prob"){
-  internal_speed <- SPEED
+FUNTIME <- function(x, EXAM, DAY, CDFFLAG, LOGFLAG, SPEED, COVARIATES=X, ABILITY=0, LATPARFLAG=FALSE, OUT="prob"){
+  ab <- ABILITY
+  sp <- SPEED
   if(LATPARFLAG){
-    internal_speed <- x[dim_irt+1]*ABILITY + x[dim_irt+2]*SPEED + x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)]%*%X
+    ab <- ABILITY + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
+    sp <- x[dim_irt+1]*ABILITY + x[dim_irt+2]*SPEED + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
+
   obj <- cpp_pTimeExam(
     EXAM = EXAM,
     DAY = DAY,
-    THETA_IRT=x[1:dim_irt],
-    THETA_LAT=x[(dim_irt+1):(dim_irt+dim_lat)],
-    COVARIATES = X,
+    THETA=x,
+    COVARIATES = COVARIATES,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
-    SPEED = internal_speed,
-    ABILITY = ABILITY,
+    SPEED = sp,
+    ABILITY = ab,
     CDFFLAG = CDFFLAG,
     LOGFLAG = LOGFLAG,
     LATPARFLAG = LATPARFLAG
@@ -363,4 +364,8 @@ for (i in 1:n) {
     })
   }
 }
+
+
+
+
 

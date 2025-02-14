@@ -88,11 +88,13 @@ private:
   Eigen::VectorXd _exams_days;
   Eigen::VectorXd _exams_set;
   Eigen::VectorXd _exams_obsflag;
+  Eigen::VectorXd _covariates;
   unsigned int _max_day;
   unsigned int _n_grades;
   unsigned int _n_exams;
   unsigned int _dim_irt;
-  bool _rotated;
+  unsigned int _dim_lat;
+  bool _latparflag;
 
 public:
   GRTC_MOD(Eigen::VectorXd THETA,
@@ -100,21 +102,24 @@ public:
           Eigen::VectorXd EXAMS_DAYS,
           Eigen::VectorXd EXAMS_SET,
           Eigen::VectorXd EXAMS_OBSFLAG,
+          Eigen::VectorXd COVARIATES,
           const unsigned int MAX_DAY,
           const unsigned int N_GRADES,
           const unsigned int N_EXAMS,
-          const bool ROTATED):
+          const bool LATPARFLAG):
   _theta(THETA),
   _exams_grades(EXAMS_GRADES),
   _exams_days(EXAMS_DAYS),
   _exams_set(EXAMS_SET),
   _exams_obsflag(EXAMS_OBSFLAG),
+  _covariates(COVARIATES),
   _max_day(MAX_DAY),
   _n_grades(N_GRADES),
   _n_exams(N_EXAMS),
-  _rotated(ROTATED)
+  _latparflag(LATPARFLAG)
   {
     _dim_irt = N_EXAMS*(N_GRADES+3);
+    _dim_lat = 2+2*(COVARIATES.size());
   }
 
   // conditional log-likelihood
@@ -157,7 +162,7 @@ double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
 }
 double GRTC_MOD::cll(const double ABILITY, const double SPEED) {
 
-  LAT lat(_theta, _dim_irt, _rotated);
+  LAT lat(_theta, _dim_irt, _latparflag);
   double out = lat.ll(ABILITY, SPEED);
 
   for(unsigned int exam = 0; exam < _n_exams; exam++){
@@ -181,7 +186,7 @@ double GRTC_MOD::cll(const double ABILITY, const double SPEED) {
 Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
 
   Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
-  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+2);
+  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+_dim_lat);
 
   for(unsigned int exam = 0; exam < _n_exams; exam++){
 
@@ -192,23 +197,24 @@ Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
                              _max_day,
                              _exams_obsflag(exam),
                              _theta,
+                             _covariates,
                              _n_grades,
                              _n_exams,
                              ABILITY, SPEED,
-                             _rotated);
+                             _latparflag);
     }
   }
 
-  gr.segment(0, _dim_irt+2) = gr_irt;
+  gr.segment(0, _dim_irt+_dim_lat) = gr_irt;
   return gr;
 }
 
 Eigen::VectorXd GRTC_MOD::grcll(const double ABILITY, const double SPEED){
 
   Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
-  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+2);
+  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+_dim_lat);
 
-  LAT lat(_theta, _dim_irt, _rotated);
+  LAT lat(_theta, _dim_irt, _latparflag);
 
   for(unsigned int exam = 0; exam < _n_exams; exam++){
 
@@ -219,14 +225,15 @@ Eigen::VectorXd GRTC_MOD::grcll(const double ABILITY, const double SPEED){
                                          _max_day,
                                          _exams_obsflag(exam),
                                          _theta,
+                                         _covariates,
                                          _n_grades,
                                          _n_exams,
                                          ABILITY, SPEED,
-                                         _rotated);
+                                         _latparflag);
     }
   }
 
-  gr.segment(0, _dim_irt+2) = gr_irt;
+  gr.segment(0, _dim_irt+_dim_lat) = gr_irt;
   gr += lat.grll(ABILITY, SPEED);
   return gr;
 }

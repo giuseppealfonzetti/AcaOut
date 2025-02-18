@@ -435,18 +435,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_lat
-Rcpp::List cpp_lat(Eigen::Map<Eigen::VectorXd> THETA, const double ABILITY, const double SPEED, const unsigned int DIM_IRT, const bool ROTATED, const bool GRFLAG);
-RcppExport SEXP _crirt_cpp_lat(SEXP THETASEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP DIM_IRTSEXP, SEXP ROTATEDSEXP, SEXP GRFLAGSEXP) {
+Rcpp::List cpp_lat(Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::VectorXd> COVARIATES, const double ABILITY, const double SPEED);
+RcppExport SEXP _crirt_cpp_lat(SEXP THETASEXP, SEXP COVARIATESSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type COVARIATES(COVARIATESSEXP);
     Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
     Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type DIM_IRT(DIM_IRTSEXP);
-    Rcpp::traits::input_parameter< const bool >::type ROTATED(ROTATEDSEXP);
-    Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_lat(THETA, ABILITY, SPEED, DIM_IRT, ROTATED, GRFLAG));
+    rcpp_result_gen = Rcpp::wrap(cpp_lat(THETA, COVARIATES, ABILITY, SPEED));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -474,33 +472,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
     Rcpp::traits::input_parameter< const std::string >::type MOD(MODSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_estep(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, OUTCOME, EXT_COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, YB, N_GRADES, N_EXAMS, MOD));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_mstep
-Rcpp::List cpp_mstep(Eigen::VectorXd THETA, Eigen::MatrixXd EXAMS_GRADES, Eigen::MatrixXd EXAMS_DAYS, Eigen::MatrixXd EXAMS_SET, Eigen::MatrixXd EXAMS_OBSFLAG, Eigen::VectorXd MAX_DAY, Eigen::VectorXd OUTCOME, Eigen::MatrixXd EXT_COVARIATES, Eigen::VectorXd YEAR_FIRST, Eigen::VectorXd YEAR_LAST, Eigen::VectorXd YEAR_LAST_EXAM, Eigen::MatrixXd GRID, Eigen::VectorXd EWEIGHTS, const unsigned int YB, const unsigned int N_GRADES, const unsigned int N_EXAMS, const std::string MOD);
-RcppExport SEXP _crirt_cpp_mstep(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP MAX_DAYSEXP, SEXP OUTCOMESEXP, SEXP EXT_COVARIATESSEXP, SEXP YEAR_FIRSTSEXP, SEXP YEAR_LASTSEXP, SEXP YEAR_LAST_EXAMSEXP, SEXP GRIDSEXP, SEXP EWEIGHTSSEXP, SEXP YBSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP MODSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA(THETASEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_SET(EXAMS_SETSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type MAX_DAY(MAX_DAYSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type OUTCOME(OUTCOMESEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type EXT_COVARIATES(EXT_COVARIATESSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_FIRST(YEAR_FIRSTSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_LAST(YEAR_LASTSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type YEAR_LAST_EXAM(YEAR_LAST_EXAMSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type GRID(GRIDSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type EWEIGHTS(EWEIGHTSSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type YB(YBSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type MOD(MODSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_mstep(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, OUTCOME, EXT_COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, EWEIGHTS, YB, N_GRADES, N_EXAMS, MOD));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -565,9 +536,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_crirt_cpp_hazard", (DL_FUNC) &_crirt_cpp_hazard, 6},
     {"_crirt_cpp_outcome", (DL_FUNC) &_crirt_cpp_outcome, 8},
     {"_crirt_cpp_crmod", (DL_FUNC) &_crirt_cpp_crmod, 9},
-    {"_crirt_cpp_lat", (DL_FUNC) &_crirt_cpp_lat, 6},
+    {"_crirt_cpp_lat", (DL_FUNC) &_crirt_cpp_lat, 4},
     {"_crirt_cpp_estep", (DL_FUNC) &_crirt_cpp_estep, 17},
-    {"_crirt_cpp_mstep", (DL_FUNC) &_crirt_cpp_mstep, 17},
     {"_crirt_cpp_mstep2", (DL_FUNC) &_crirt_cpp_mstep2, 17},
     {"_crirt_reparThr", (DL_FUNC) &_crirt_reparThr, 2},
     {NULL, NULL, 0}

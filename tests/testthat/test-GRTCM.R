@@ -290,3 +290,37 @@ test_that("Check gradient derivative with node rotation", {
   )
 })
 
+######## complete loglik tests ######
+RFUN <- function(x, ID, COVARIATES=X[ID,], LAT_POINTS, GRFLAG=FALSE){
+  obj <- cpp_grtcm_class(
+    THETA = x,
+    EXAMS_GRADES = gradesMat[ID,],
+    EXAMS_DAYS = timeMat[ID,],
+    EXAMS_SET = todoMat[ID,],
+    EXAMS_OBSFLAG = obsMat[ID,],
+    COVARIATES = COVARIATES,
+    ABILITY = LAT_POINTS[1],
+    SPEED = LAT_POINTS[2],
+    MAX_DAY = max_day,
+    N_GRADES = n_grades,
+    N_EXAMS = n_exams,
+    LATPARFLAG = FALSE
+  )
+
+  if(GRFLAG){
+    obj$grcll
+  }else{
+    obj$cll
+  }
+}
+
+for (i in 1:n) {
+  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+    expect_equal(
+      numDeriv::grad(RFUN, x=theta, ID=i, LAT_POINTS = latMat[i,]),
+      RFUN(x=theta, ID=i, LAT_POINTS = latMat[i,], GRFLAG=TRUE),
+      tolerance = 1e-5
+    )
+  })
+
+}

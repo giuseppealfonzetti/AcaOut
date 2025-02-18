@@ -16,11 +16,11 @@ namespace cr
    //' @param LOGFLAG Set TRUE to return log value.
    //' @returns It returns the hazard probability of the specific outcome and year.
   double hazard(
-    const unsigned int OUTCOME,
-    const unsigned int YEAR,
+    const int OUTCOME,
+    const int YEAR,
     const Eigen::Ref<const Eigen::VectorXd> THETA,
     const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
-    const unsigned int YB,
+    const int YB,
     const bool LOGFLAG = false
   ){
 
@@ -68,12 +68,12 @@ namespace cr
   //'
   //' @returns It returns the probability of survival from `YEAR FIRST` to `YEAR_LAST` included.
   double survival(
-    const unsigned int YEAR_FIRST,
-    const unsigned int YEAR_LAST,
+    const int YEAR_FIRST,
+    const int YEAR_LAST,
     const Eigen::Ref<const Eigen::VectorXd> THETA,
     const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
-    const unsigned int YB,
-    const unsigned int YEAR_LAST_EXAM = 100,
+    const int YB,
+    const int YEAR_LAST_EXAM = 100,
     const bool LOGFLAG = false
   ){
 
@@ -176,12 +176,12 @@ namespace cr::grad{
  //' @returns It returns the hazard probability of the specific outcome and year.
  //'
  Eigen::VectorXd gr_hazard(
-     const unsigned int OUTCOME,
-     const unsigned int YEAR,
+     const int OUTCOME,
+     const int YEAR,
      const Eigen::Ref<const Eigen::VectorXd> THETA,
      const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
-     const unsigned int YB,
-     const bool ROTATED
+     const int YB,
+     const bool LATPARFLAG
  ){
 
    const int q = COVARIATES.size();
@@ -212,13 +212,13 @@ namespace cr::grad{
        gr.segment(dim_irtlat+2*YB+q+1, q) = nprod*COVARIATES;
        gr(dim_irtlat+YEAR+YB+q) = nprod;
 
-       if(ROTATED){
+       if(LATPARFLAG){
          const double d1 = COVARIATES(q-2); //quadrature point for ability does not rotate
          const double d2 = (COVARIATES(q-1)-THETA(dim_irtlat-2)*d1)/THETA(dim_irtlat-1); // quadrature grid point for speed
 
-         // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomof lat covariance matrix)
+         // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomp of lat covariance matrix)
          gr(dim_irtlat-2) = tmp*beta_d(q-1)*d1+nprod*beta_t(q-1)*d1;
-         // derivative wrt l1 (L(1,1) where L is the lower Cholesky decomof lat covariance matrix)
+         // derivative wrt l1 (L(1,1) where L is the lower Cholesky decomp of lat covariance matrix)
          gr(dim_irtlat-1) = tmp*beta_d(q-1)*d2+nprod*beta_t(q-1)*d2;
        }
 
@@ -230,13 +230,13 @@ namespace cr::grad{
        gr.segment(dim_irtlat+YB+1, q) = nprod*COVARIATES;
        gr(dim_irtlat+YEAR) = nprod;
 
-       if(ROTATED){
+       if(LATPARFLAG){
          const double d1 = COVARIATES(q-2); //quadrature point for ability does not rotate
          const double d2 = (COVARIATES(q-1)-THETA(dim_irtlat-2)*d1)/THETA(dim_irtlat-1); // quadrature grid point for speed
 
-         // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomof lat covariance matrix)
+         // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomp of lat covariance matrix)
          gr(dim_irtlat-2) = tmp*beta_t(q-1)*d1+nprod*beta_d(q-1)*d1;
-         // derivative wrt l1 (L(1,1) where L is the lower Cholesky decomof lat covariance matrix)
+         // derivative wrt l1 (L(1,1) where L is the lower Cholesky decomp of lat covariance matrix)
          gr(dim_irtlat-1) = tmp*beta_t(q-1)*d2+nprod*beta_d(q-1)*d2;
        }
      }

@@ -227,4 +227,98 @@ Eigen::VectorXd LAT2::grll(const double ABILITY, const double SPEED){
   return(gr);
 }
 
+
+
+
+
+
+namespace latent{
+
+
+  class LAT{
+  private:
+    Eigen::VectorXd theta_lat;
+    Eigen::VectorXd covariates;
+    const int n_cov;
+
+  public:
+    LAT(const Eigen::Ref<const Eigen::VectorXd> THETA_LAT_,
+        const Eigen::Ref<const Eigen::VectorXd> COVARIATES_):
+    theta_lat(THETA_LAT_), covariates(COVARIATES_), n_cov(COVARIATES_.size()){}
+
+    double ll(const double ABILITY, const double SPEED);
+
+    Eigen::VectorXd grll(const double ABILITY, const double SPEED);
+  };
+
+  double LAT::ll(const double ABILITY, const double SPEED){
+    double ll;
+    Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
+    Eigen::MatrixXd L{{1,0},{theta_lat(0), theta_lat(1)}};
+    Eigen::MatrixXd cov = L*L.transpose();
+    double det = cov.determinant();
+    Eigen::MatrixXd inv_cov = cov.inverse();
+    Eigen::MatrixXd B(2, n_cov);
+    B.row(0) = theta_lat.segment(2, n_cov);
+    B.row(1) = theta_lat.segment(2+n_cov, n_cov);
+    Eigen::VectorXd mu = B*covariates;
+    ll = neglog2pi-0.5*log(det) - 0.5 * double((lat-mu).transpose()*inv_cov*(lat-mu));
+    return(ll);
+  }
+
+  Eigen::VectorXd LAT::grll(const double ABILITY, const double SPEED){
+    Eigen::VectorXd gr = Eigen::VectorXd::Zero(2+2*n_cov);
+    Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
+    Eigen::MatrixXd L{{1,0},{theta_lat(0), theta_lat(1)}};
+    Eigen::MatrixXd B(2, n_cov);
+    B.row(0) = theta_lat.segment(2, n_cov);
+    B.row(1) = theta_lat.segment(2+n_cov, n_cov);
+    Eigen::VectorXd mu = B*covariates;
+    Eigen::VectorXd latc = lat-mu;
+
+    Eigen::MatrixXd iL = L.inverse();
+    Eigen::MatrixXd Z1 = Eigen::MatrixXd::Zero(2,2); Z1(1,0) = 1;
+    Eigen::MatrixXd Z2 = Eigen::MatrixXd::Zero(2,2); Z2(1,1) = 1;
+
+    Eigen::MatrixXd M1 = -iL.transpose()*Z1.transpose()*iL.transpose()*iL;
+    Eigen::MatrixXd M2 = -iL.transpose()*Z2.transpose()*iL.transpose()*iL;
+
+    gr(0) = -(iL*Z1).trace() - .5*latc.transpose()*(M1 + M1.transpose())*latc;
+    gr(1) = -(iL*Z2).trace() - .5*latc.transpose()*(M2 + M2.transpose())*latc;
+    gr.segment(2, n_cov) = ((1+pow(L(1,0),2)/pow(L(1,1),2))*latc(0) - (L(1,0)/pow(L(1,1),2))*latc(1) ) *covariates;
+    gr.segment(2+n_cov, n_cov) = ((1/pow(L(1,1),2))*(latc(1))- (L(1,0)/pow(L(1,1),2))*latc(0)) *covariates;
+
+    return(gr);
+  }
+
+}
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

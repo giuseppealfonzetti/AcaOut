@@ -9,6 +9,7 @@
 #include "testthat_wrappers.h"
 #include "conditional_models.h"
 #include "joint_models.h"
+#include "GRTCM.h"
 
 //' GRTCM computations with Gaussian quadrature
 //'
@@ -44,76 +45,22 @@ Rcpp::List GRTCM_GH(
     const bool GRFLAG = true,
     const bool ROTGRID = true
 ){
-  double ll = 0;
 
-  const int n = EXAMS_GRADES.rows();
-  const int nq = GRID.rows();
-  const int n_cov = COVARIATES.cols();
-  const int dim_irt = N_EXAMS*(N_GRADES+3);
-  const int dim_lat = 2+2*n_cov;
-  Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
-
-
-  Eigen::MatrixXd grid=GRID;
-  if(ROTGRID){
-    Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
-    grid = grid * L.transpose();
-
-  }
-
-  Eigen::MatrixXd llMat(n,nq);
-  for(int i = 0; i < n; i++){
-
-    double mu_i_ability = 0;
-    double mu_i_speed = 0;
-    if(ROTGRID){
-      mu_i_ability = COVARIATES.row(i)*THETA.segment(dim_irt+2, n_cov);
-      mu_i_speed = COVARIATES.row(i)*THETA.segment(dim_irt+2+n_cov, n_cov);
-    }
-
-
-
-    // Initialize conditional IRT model
-    GRTC_MOD irt_mod(THETA,
-                     EXAMS_GRADES.row(i),
-                     EXAMS_DAYS.row(i),
-                     EXAMS_SET.row(i),
-                     EXAMS_OBSFLAG.row(i),
-                     COVARIATES.row(i),
-                     MAX_DAY(i),
-                     N_GRADES,
-                     N_EXAMS,
-                     ROTGRID);
-
-    Eigen::VectorXd f(nq);
-    Eigen::MatrixXd gr = Eigen::MatrixXd::Zero(THETA.size(), nq);
-
-    for(int point = 0; point < nq; point++){
-      f(point) = exp(irt_mod.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed));
-      llMat(i,point)=(irt_mod.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed));
-
-      if(GRFLAG){
-        Eigen::VectorXd gr_point = irt_mod.grll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
-        gr_point *= f(point);
-        gr.col(point) = gr_point;
-      }
-
-    }
-    double lli = std::max(-10000.0, log(f.dot(WEIGHTS)));
-
-    ll += lli;
-    if(GRFLAG){
-      grll += gr*WEIGHTS/exp(lli);
-    }
-  }
-
-  Rcpp::List output =
-    Rcpp::List::create(
-      Rcpp::Named("grid") = grid,
-      Rcpp::Named("llMat") = llMat,
-      Rcpp::Named("gr") = grll,
-      Rcpp::Named("ll") = ll
-    );
+  Rcpp::List output = grtcm::gq::evaluate_grid(
+      THETA,
+      EXAMS_GRADES,
+      EXAMS_DAYS,
+      EXAMS_SET,
+      EXAMS_OBSFLAG,
+      COVARIATES,
+      MAX_DAY,
+      GRID,
+      WEIGHTS,
+      N_GRADES,
+      N_EXAMS,
+      GRFLAG,
+      ROTGRID
+  );
 
   return output;
 
@@ -415,7 +362,8 @@ Rcpp::List cpp_EM(
     Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
     Eigen::MatrixXd grid = GRID * L.transpose();
 
-    if(VERBOSE)Rcpp::Rcout << "Iter " << iter << " | E-STEP...";
+    if(VERBOSE)Rcpp::Rcout << "Iter " << iter << ":\n";
+    if(VERBOSE)Rcpp::Rcout << "- E-STEP...";
     Eigen::MatrixXd Ew = EM::Estep(theta,
                                    EXAMS_GRADES,
                                    EXAMS_DAYS,
@@ -434,7 +382,7 @@ Rcpp::List cpp_EM(
                                    N_EXAMS,
                                    MOD);
 
-    if(VERBOSE)Rcpp::Rcout << " done! | M_STEP...";
+    if(VERBOSE)Rcpp::Rcout << " Weights computed.\n";
     EM::EAPLOGJ eclass(
         EXAMS_GRADES,
         EXAMS_DAYS,
@@ -457,7 +405,11 @@ Rcpp::List cpp_EM(
     int status = optim_lbfgs(eclass, theta, enjll, M_MAX_ITER);
     double tol_check = (path_enjll.back() - enjll) / path_enjll.back();
 
-    if(VERBOSE)Rcpp::Rcout << " status="<<status<<  " | obj=" << enjll << ", obj_pdiff:" << tol_check  <<"|\n";
+    MCOUNT = 0;
+    if(VERBOSE){
+      if(status==0) Rcpp::Rcout <<  " | Converged.";
+      Rcpp::Rcout <<  "\n- obj=" << enjll << ", obj_pdiff:" << tol_check  <<"|\n";
+    }
 
     path_theta.push_back(theta);
     path_enjll.push_back(enjll);
@@ -465,7 +417,7 @@ Rcpp::List cpp_EM(
     if(tol_check<TOL){
       last_iter = iter;
       convergence = 1;
-      if(VERBOSE)Rcpp::Rcout << "Converged\n";
+      if(VERBOSE)Rcpp::Rcout << "EM converged correctly\n";
       break;
     }
   }

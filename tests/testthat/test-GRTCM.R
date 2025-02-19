@@ -218,9 +218,81 @@ for (i in 1:n) {
 
 }
 
+# ##### TESTS ####
+# RFUN <- function(x, ROTATE){
+#   GRTCM_GH(
+#     THETA = x,
+#     EXAMS_GRADES = gradesMat,
+#     EXAMS_DAYS = timeMat,
+#     EXAMS_SET = todoMat,
+#     EXAMS_OBSFLAG = obsMat,
+#     COVARIATES = X,
+#     MAX_DAY = rep(max_day,n),
+#     GRID = as.matrix(nodes),
+#     WEIGHTS = weights,
+#     N_GRADES = n_grades,
+#     N_EXAMS = n_exams,
+#     GRFLAG = FALSE,
+#     ROTGRID = ROTATE
+#   )$ll
+# }
+#
+# RFUN(theta[1:(dim_irt+dim_lat)], TRUE)
+#
+# #### check gradient
+# test_that("Check gradient derivative without node rotation", {
+#
+#
+#   fit <- GRTCM_GH(
+#     THETA = theta,
+#     EXAMS_GRADES = gradesMat,
+#     EXAMS_DAYS = timeMat,
+#     EXAMS_SET = todoMat,
+#     EXAMS_OBSFLAG = obsMat,
+#     COVARIATES = X,
+#     MAX_DAY = rep(max_day,n),
+#     GRID = as.matrix(nodes),
+#     WEIGHTS = weights,
+#     N_GRADES = n_grades,
+#     N_EXAMS = n_exams,
+#     GRFLAG = TRUE,
+#     ROTGRID = FALSE
+#   )
+#
+#   expect_equal(
+#     numDeriv::grad(RFUN, x = theta, ROTATE = FALSE),
+#     fit$gr
+#   )
+# })
+#
+# test_that("Check gradient derivative with node rotation", {
+#
+#   fit <- GRTCM_GH(
+#     THETA = theta,
+#     EXAMS_GRADES = gradesMat,
+#     EXAMS_DAYS = timeMat,
+#     EXAMS_SET = todoMat,
+#     EXAMS_OBSFLAG = obsMat,
+#     COVARIATES = X,
+#     MAX_DAY = rep(max_day,n),
+#     GRID = as.matrix(nodes),
+#     WEIGHTS = weights,
+#     N_GRADES = n_grades,
+#     N_EXAMS = n_exams,
+#     GRFLAG = TRUE,
+#     ROTGRID = TRUE
+#   )
+#
+#   expect_equal(
+#     numDeriv::grad(RFUN, x = theta, ROTATE = TRUE),
+#     fit$gr,
+#     tolerance = 1e-4
+#   )
+# })
+#
 ##### TESTS ####
-RFUN <- function(x, ROTATE){
-  GRTCM_GH(
+RFUN <- function(x, LATPARFLAG){
+  cpp_GQ(
     THETA = x,
     EXAMS_GRADES = gradesMat,
     EXAMS_DAYS = timeMat,
@@ -228,22 +300,28 @@ RFUN <- function(x, ROTATE){
     EXAMS_OBSFLAG = obsMat,
     COVARIATES = X,
     MAX_DAY = rep(max_day,n),
+    OUTCOME = rep(1,n),
+    YEAR_FIRST = rep(1,n),
+    YEAR_LAST = rep(1,n),
+    YEAR_LAST_EXAM = rep(1,n),
+    YB = yb,
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     GRFLAG = FALSE,
-    ROTGRID = ROTATE
+    LATPARFLAG = LATPARFLAG,
+    MOD="grtcm"
   )$ll
 }
 
-RFUN(theta[1:(dim_irt+dim_lat)], TRUE)
+RFUN(theta, TRUE)
 
 #### check gradient
 test_that("Check gradient derivative without node rotation", {
 
 
-  fit <- GRTCM_GH(
+  fit <- cpp_GQ(
     THETA = theta,
     EXAMS_GRADES = gradesMat,
     EXAMS_DAYS = timeMat,
@@ -251,23 +329,30 @@ test_that("Check gradient derivative without node rotation", {
     EXAMS_OBSFLAG = obsMat,
     COVARIATES = X,
     MAX_DAY = rep(max_day,n),
+    OUTCOME = rep(1,n),
+    YEAR_FIRST = rep(1,n),
+    YEAR_LAST = rep(1,n),
+    YEAR_LAST_EXAM = rep(1,n),
+    YB = yb,
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     GRFLAG = TRUE,
-    ROTGRID = FALSE
+    LATPARFLAG = FALSE,
+    MOD="grtcm"
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta, ROTATE = FALSE),
+    numDeriv::grad(RFUN, x = theta, LATPARFLAG = FALSE),
     fit$gr
   )
 })
 
 test_that("Check gradient derivative with node rotation", {
 
-  fit <- GRTCM_GH(
+
+  fit <- cpp_GQ(
     THETA = theta,
     EXAMS_GRADES = gradesMat,
     EXAMS_DAYS = timeMat,
@@ -275,20 +360,27 @@ test_that("Check gradient derivative with node rotation", {
     EXAMS_OBSFLAG = obsMat,
     COVARIATES = X,
     MAX_DAY = rep(max_day,n),
+    OUTCOME = rep(1,n),
+    YEAR_FIRST = rep(1,n),
+    YEAR_LAST = rep(1,n),
+    YEAR_LAST_EXAM = rep(1,n),
+    YB = yb,
     GRID = as.matrix(nodes),
     WEIGHTS = weights,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     GRFLAG = TRUE,
-    ROTGRID = TRUE
+    LATPARFLAG = TRUE,
+    MOD="grtcm"
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta, ROTATE = TRUE),
-    fit$gr,
-    tolerance = 1e-4
+    numDeriv::grad(RFUN, x = theta, LATPARFLAG = TRUE),
+    fit$gr
   )
 })
+
+
 
 ######## complete loglik tests ######
 RFUN <- function(x, ID, COVARIATES=X[ID,], LAT_POINTS, GRFLAG=FALSE){
@@ -324,3 +416,5 @@ for (i in 1:n) {
   })
 
 }
+
+

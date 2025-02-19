@@ -56,14 +56,14 @@ namespace EM
                        false);
 
         // Initialize conditional CR model
-        CR_MOD cr_mod(THETA,
-                      OUTCOME(i),
-                      EXT_COVARIATES.row(i),
-                      YB,
-                      YEAR_FIRST(i),
-                      YEAR_LAST(i),
-                      YEAR_LAST_EXAM(i),
-                      false);
+        // CR_MOD cr_mod(THETA,
+        //               OUTCOME(i),
+        //               EXT_COVARIATES.row(i),
+        //               YB,
+        //               YEAR_FIRST(i),
+        //               YEAR_LAST(i),
+        //               YEAR_LAST_EXAM(i),
+        //               false);
 
 
 
@@ -71,7 +71,7 @@ namespace EM
         double logd = grtc.ll(GRID(point, 0), GRID(point, 1));
 
         if(MOD=="full"){
-          logd  += cr_mod.ll( GRID(point, 0), GRID(point, 1));
+          // logd  += cr_mod.ll( GRID(point, 0), GRID(point, 1));
         }
 
         Emat(i, point) = exp(logd)*WEIGHTS(point);
@@ -316,7 +316,7 @@ public:
                        false);
 
       // Initialize conditional CR model
-      CR_MOD cr_mod(theta,
+      cr::CCR ccrm(theta,
                     _outcome(i),
                     _ext_covariates.row(i),
                     _yb,
@@ -331,8 +331,8 @@ public:
         Eigen::VectorXd grlogd = grtcm.grcll(_grid(point, 0), _grid(point, 1));
 
         if(_mod=="full"){
-          logd  += cr_mod.ll( _grid(point, 0), _grid(point, 1));
-          grlogd += cr_mod.grll( _grid(point, 0), _grid(point, 1));
+          logd  += ccrm.ll( _grid(point, 0), _grid(point, 1));
+          grlogd += ccrm.grll( _grid(point, 0), _grid(point, 1));
         }
 
         nll -= logd*_eweights(i, point);

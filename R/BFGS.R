@@ -25,7 +25,7 @@ fit_BFGS <- function(DATA,
                         MOD,
                         ...){
 
-  if(!(MOD%in%c("full"))){
+  if(!(MOD%in%c("full", "grtc"))){
     stop("Select MOD among `full` or `grtc`.")
   }
 
@@ -44,51 +44,96 @@ fit_BFGS <- function(DATA,
   }
 
   NLL <- function(x){
-    -CRGRTCM_GH(
+    -cpp_GQ(
       THETA = x,
       EXAMS_GRADES = DATA$gradesMat,
       EXAMS_DAYS = DATA$timeMat,
       EXAMS_SET = DATA$todoMat,
       EXAMS_OBSFLAG = !is.na(DATA$timeMat),
+      COVARIATES = as.matrix(DATA$X),
       MAX_DAY = DATA$fulldata$max_time,
       OUTCOME = DATA$outcome,
-      EXT_COVARIATES = as.matrix(DATA$X) ,
       YEAR_FIRST = DATA$first_year,
       YEAR_LAST = DATA$last_year,
       YEAR_LAST_EXAM = DATA$yle,
+      YB = DATA$yb,
       GRID = GRID,
       WEIGHTS = WEIGHTS,
-      YB = DATA$yb,
       N_GRADES = DATA$n_grades,
       N_EXAMS = DATA$n_exams,
       GRFLAG = FALSE,
-      ROTGRID = TRUE
+      LATPARFLAG = TRUE,
+      MOD=MOD
     )$ll
   }
+  # NLL <- function(x){
+  #   -CRGRTCM_GH(
+  #     THETA = x,
+  #     EXAMS_GRADES = DATA$gradesMat,
+  #     EXAMS_DAYS = DATA$timeMat,
+  #     EXAMS_SET = DATA$todoMat,
+  #     EXAMS_OBSFLAG = !is.na(DATA$timeMat),
+  #     MAX_DAY = DATA$fulldata$max_time,
+  #     OUTCOME = DATA$outcome,
+  #     EXT_COVARIATES = as.matrix(DATA$X) ,
+  #     YEAR_FIRST = DATA$first_year,
+  #     YEAR_LAST = DATA$last_year,
+  #     YEAR_LAST_EXAM = DATA$yle,
+  #     GRID = GRID,
+  #     WEIGHTS = WEIGHTS,
+  #     YB = DATA$yb,
+  #     N_GRADES = DATA$n_grades,
+  #     N_EXAMS = DATA$n_exams,
+  #     GRFLAG = FALSE,
+  #     ROTGRID = TRUE
+  #   )$ll
+  # }
 
+  # NGR <- function(x){
+  #   -CRGRTCM_GH(
+  #     THETA = x,
+  #     EXAMS_GRADES = DATA$gradesMat,
+  #     EXAMS_DAYS = DATA$timeMat,
+  #     EXAMS_SET = DATA$todoMat,
+  #     EXAMS_OBSFLAG = !is.na(DATA$timeMat),
+  #     MAX_DAY = DATA$fulldata$max_time,
+  #     OUTCOME = DATA$outcome,
+  #     EXT_COVARIATES = as.matrix(DATA$X) ,
+  #     YEAR_FIRST = DATA$first_year,
+  #     YEAR_LAST = DATA$last_year,
+  #     YEAR_LAST_EXAM = DATA$yle,
+  #     GRID = GRID,
+  #     WEIGHTS = WEIGHTS,
+  #     YB = DATA$yb,
+  #     N_GRADES = DATA$n_grades,
+  #     N_EXAMS = DATA$n_exams,
+  #     GRFLAG = TRUE,
+  #     ROTGRID = TRUE
+  #   )$gr
+  # }
   NGR <- function(x){
-    -CRGRTCM_GH(
+    -cpp_GQ(
       THETA = x,
       EXAMS_GRADES = DATA$gradesMat,
       EXAMS_DAYS = DATA$timeMat,
       EXAMS_SET = DATA$todoMat,
       EXAMS_OBSFLAG = !is.na(DATA$timeMat),
+      COVARIATES = as.matrix(DATA$X),
       MAX_DAY = DATA$fulldata$max_time,
       OUTCOME = DATA$outcome,
-      EXT_COVARIATES = as.matrix(DATA$X) ,
       YEAR_FIRST = DATA$first_year,
       YEAR_LAST = DATA$last_year,
       YEAR_LAST_EXAM = DATA$yle,
+      YB = DATA$yb,
       GRID = GRID,
       WEIGHTS = WEIGHTS,
-      YB = DATA$yb,
       N_GRADES = DATA$n_grades,
       N_EXAMS = DATA$n_exams,
       GRFLAG = TRUE,
-      ROTGRID = TRUE
+      LATPARFLAG = TRUE,
+      MOD=MOD
     )$gr
   }
-
   fit <- ucminf::ucminf(par = start_par, fn = NLL, gr = NGR, hessian = 2, ...)
 
   message(fit$message)
@@ -99,7 +144,7 @@ fit_BFGS <- function(DATA,
       "weights" = WEIGHTS,
       "data" = DATA,
       "start_par" = start_par,
-      "mod" = "full",
+      "mod" = MOD,
       "fit" = fit
     ))
 }

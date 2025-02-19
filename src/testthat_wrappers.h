@@ -135,16 +135,6 @@ Rcpp::List cpp_grtcm_class(
 
   double ab = ABILITY;
   double sp = SPEED;
-  // if(LATPARFLAG){
-  //   Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
-  //   points =  L*points;
-  //   Eigen::MatrixXd B = THETA.segment(dim_irt+2, 2*n_cov).reshaped(2,n_cov);
-  //
-  //   points += B*COVARIATES;
-  //
-  //   Rcpp::Rcout<<"B:\n"<< B<<"\n";
-  //   Rcpp::Rcout<<"GRID:\n"<< points.transpose()<<"\n";
-  // }
 
   // Rcpp::Rcout<<"Class |:\n"<< ab <<", "<< sp<<"\n";
   grtcm::GRTC obj(
@@ -185,23 +175,38 @@ Rcpp::List cpp_grtcm_class(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_survival(
-    const unsigned int YEAR_FIRST,
-    const unsigned int YEAR_LAST,
+    const int YEAR_FIRST,
+    const int YEAR_LAST,
     Eigen::Map<Eigen::VectorXd>  THETA,
     Eigen::Map<Eigen::VectorXd>  COVARIATES,
-    const unsigned int YB,
-    const unsigned int YEAR_LAST_EXAM,
-    const bool LOGFLAG = false
+    const double ABILITY,
+    const double SPEED,
+    const int YB,
+    const int YEAR_LAST_EXAM,
+    const bool LATPARFLAG
 ){
   double prob = cr::survival(YEAR_FIRST,
                              YEAR_LAST,
-                         THETA,
-                         COVARIATES,
-                         YB,
-                         YEAR_LAST_EXAM,
-                         LOGFLAG);
+                             THETA,
+                             ABILITY,
+                             SPEED,
+                             YB,
+                             YEAR_LAST_EXAM,
+                             false);
+
+  Eigen::VectorXd gr = cr::grad::gr_survival(YEAR_FIRST,
+                             YEAR_LAST,
+                             THETA,
+                             COVARIATES,
+                             ABILITY,
+                             SPEED,
+                             YB,
+                             YEAR_LAST_EXAM,
+                             LATPARFLAG);
+
   Rcpp::List output = Rcpp::List::create(
-    Rcpp::Named("prob")=prob
+    Rcpp::Named("prob")=prob,
+    Rcpp::Named("gr")=gr
   );
 
   return output;
@@ -211,22 +216,35 @@ Rcpp::List cpp_survival(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_hazard(
-    const unsigned int OUTCOME,
-    const unsigned int YEAR,
+    const int OUTCOME,
+    const int YEAR,
     Eigen::Map<Eigen::VectorXd>  THETA,
     Eigen::Map<Eigen::VectorXd>  COVARIATES,
-    const unsigned int YB,
-    const bool LOGFLAG = false
+    const double ABILITY,
+    const double SPEED,
+    const int YB,
+    const bool LATPARFLAG = false
 ){
   double prob = cr::hazard(OUTCOME,
                            YEAR,
                            THETA,
-                           COVARIATES,
+                           ABILITY,
+                           SPEED,
                            YB,
-                           LOGFLAG);
+                           false);
+  Eigen::VectorXd gr = cr::grad::gr_hazard(OUTCOME,
+                                           YEAR,
+                                           THETA,
+                                           COVARIATES,
+                                           ABILITY,
+                                           SPEED,
+                                           YB,
+                                           LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
-    Rcpp::Named("prob")=prob
+    Rcpp::Named("prob")=prob,
+    Rcpp::Named("gr")=gr
+
   );
 
   return output;
@@ -236,62 +254,67 @@ Rcpp::List cpp_hazard(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_outcome(
-    const unsigned int OUTCOME,
-    const unsigned int YEAR_FIRST,
-    const unsigned int YEAR_LAST,
-    Eigen::Map<Eigen::VectorXd>  THETA,
-    Eigen::Map<Eigen::VectorXd>  COVARIATES,
-    const unsigned int YB,
-    const unsigned int YEAR_LAST_EXAM,
-    const bool LOGFLAG = false
+    const int OUTCOME,
+    const int YEAR_FIRST,
+    const int YEAR_LAST,
+    Eigen::Map<Eigen::VectorXd> THETA,
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
+    const double ABILITY,
+    const double SPEED,
+    const int YB,
+    const int YEAR_LAST_EXAM,
+    const bool LATPARFLAG
 ){
   double prob = cr::outcomeLik(OUTCOME,
                                YEAR_FIRST,
                                YEAR_LAST,
                                THETA,
-                               COVARIATES,
+                               ABILITY,
+                               SPEED,
                                YB,
                                YEAR_LAST_EXAM,
-                               LOGFLAG);
+                               true);
+
+  Eigen::VectorXd gr = cr::grad::grl_outcomeLik(OUTCOME,
+                                                YEAR_FIRST,
+                                                YEAR_LAST,
+                                                THETA,
+                                                COVARIATES,
+                                                ABILITY,
+                                                SPEED,
+                                                YB,
+                                                YEAR_LAST_EXAM,
+                                                LATPARFLAG);
 
   Rcpp::List output = Rcpp::List::create(
-    Rcpp::Named("prob")=prob
+    Rcpp::Named("logprob")=prob,
+    Rcpp::Named("grl")=gr
+
   );
 
   return output;
 }
 //' @export
 // [[Rcpp::export]]
-Rcpp::List cpp_crmod(
-    const unsigned int OUTCOME,
-    const unsigned int YEAR_FIRST,
-    const unsigned int YEAR_LAST,
+Rcpp::List cpp_cr_class(
+    const int OUTCOME,
+    const int YEAR_FIRST,
+    const int YEAR_LAST,
     Eigen::Map<Eigen::VectorXd> THETA,
-    Eigen::Map<Eigen::VectorXd> EXT_COVARIATES,
-    const unsigned int YB,
-    const unsigned int YEAR_LAST_EXAM,
-    Eigen::Map<Eigen::VectorXd> LAT_POINTS,
-    const bool ROTATE
+    Eigen::Map<Eigen::VectorXd> COVARIATES,
+    const double ABILITY,
+    const double SPEED,
+    const int YB,
+    const int YEAR_LAST_EXAM,
+    const bool LATPARFLAG
 ){
 
-  const int q = EXT_COVARIATES.size();
-  const int dim_cr = 2*(YB+q+2)+1;
-  const int dim_irt = THETA.size()-dim_cr-2;
 
-  CR_MOD cr(THETA, OUTCOME, EXT_COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, ROTATE);
-  Eigen::VectorXd lat(2);
-  if(ROTATE){
-    Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
-    lat = L*LAT_POINTS;
-  }else{
-    lat = LAT_POINTS;
-  }
-
-  double ll = cr.ll(lat(0), lat(1));
-  Eigen::VectorXd grll=cr.grll(lat(0), lat(1));
+  cr::CCR ccr(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, LATPARFLAG);
+  double ll = ccr.ll(ABILITY, SPEED);
+  Eigen::VectorXd grll=ccr.grll(ABILITY, SPEED);
 
   Rcpp::List output = Rcpp::List::create(
-    // Rcpp::Named("L")=L,
     Rcpp::Named("ll")=ll,
     Rcpp::Named("grll")=grll
   );
@@ -477,7 +500,7 @@ Rcpp::List cpp_mstep2(
   for(unsigned int i = 0; i < EXAMS_GRADES.rows(); i++){
 
     // Initialize conditional IRT model
-    GRTC_MOD irt_mod(THETA,
+    grtcm::GRTC obj(THETA,
                      EXAMS_GRADES.row(i),
                      EXAMS_DAYS.row(i),
                      EXAMS_SET.row(i),
@@ -488,7 +511,7 @@ Rcpp::List cpp_mstep2(
                      N_EXAMS,
                      false);
 
-    irt_nll-=irt_mod.cll(GRID(0,0), GRID(0,1));
+    irt_nll-=obj.cll(GRID(0,0), GRID(0,1));
   }
 
 

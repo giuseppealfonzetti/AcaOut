@@ -6,7 +6,7 @@
 #include "extractParams.h"
 #include "latent.h"
 #include "cr.h"
-#include "conditional_models.h"
+#include "GRTCM.h"
 
 //' IRT complete observation
 //'
@@ -35,20 +35,18 @@ double GRTCM_complete_obs(
     Eigen::VectorXd EXAMS_OBSFLAG,
     Eigen::VectorXd EXAMS_SET,
     Eigen::VectorXd COVARIATES,
-    const unsigned int MAX_DAY,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
+    const int MAX_DAY,
+    const int N_GRADES,
+    const int N_EXAMS,
     const double ABILITY,
     const double SPEED
 ){
 
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
-
   // Initialize conditional IRT model
-  GRTC_MOD irt_mod(THETA, EXAMS_GRADES, EXAMS_DAYS,
+  grtcm::GRTC obj(THETA, EXAMS_GRADES, EXAMS_DAYS,
                   EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
 
-  double cll = irt_mod.cll(ABILITY, SPEED);
+  double cll = obj.cll(ABILITY, SPEED);
 
   return cll;
 }
@@ -62,29 +60,28 @@ double CRGRTCM_complete_obs(
     Eigen::VectorXd EXAMS_DAYS,
     Eigen::VectorXd EXAMS_OBSFLAG,
     Eigen::VectorXd EXAMS_SET,
-    const unsigned int OUTCOME,
-    const unsigned int YEAR_FIRST,
-    const unsigned int YEAR_LAST,
-    const unsigned int YEAR_LAST_EXAM,
+    const int OUTCOME,
+    const int YEAR_FIRST,
+    const int YEAR_LAST,
+    const int YEAR_LAST_EXAM,
     Eigen::VectorXd COVARIATES,
-    const unsigned int MAX_DAY,
-    const unsigned int YB,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
+    const int MAX_DAY,
+    const int YB,
+    const int N_GRADES,
+    const int N_EXAMS,
     const double ABILITY,
     const double SPEED
 ){
 
-  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
 
   // Initialize conditional IRT model
-  GRTC_MOD irt_mod(THETA, EXAMS_GRADES, EXAMS_DAYS,
+  grtcm::GRTC grtc(THETA, EXAMS_GRADES, EXAMS_DAYS,
                   EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
 
   // Initialize conditional CR model
-  CR_MOD cr_mod(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, false);
+  cr::CCR ccr(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, false);
 
-  double cll = irt_mod.cll(ABILITY, SPEED) + cr_mod.ll(ABILITY, SPEED);
+  double cll = grtc.cll(ABILITY, SPEED) + ccr.ll(ABILITY, SPEED);
 
   return cll;
 }

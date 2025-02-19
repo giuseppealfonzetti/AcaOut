@@ -46,37 +46,33 @@ compute_stderr <- function(FIT, NUMDER=FALSE, TIDY = TRUE, GRID=NULL, WEIGHTS=NU
   )
 
   if(NUMDER){
-    if(FIT$mod=="full"){
       NGR <- function(x){
-        -CRGRTCM_GH(
+        -cpp_GQ(
           THETA = x,
           EXAMS_GRADES = FIT$data$gradesMat,
           EXAMS_DAYS = FIT$data$timeMat,
           EXAMS_SET = FIT$data$todoMat,
           EXAMS_OBSFLAG = !is.na(FIT$data$timeMat),
+          COVARIATES = as.matrix(FIT$data$X),
           MAX_DAY = FIT$data$fulldata$max_time,
           OUTCOME = FIT$data$outcome,
-          EXT_COVARIATES = as.matrix(FIT$data$X) ,
           YEAR_FIRST = FIT$data$first_year,
           YEAR_LAST = FIT$data$last_year,
           YEAR_LAST_EXAM = FIT$data$yle,
+          YB = FIT$data$yb,
           GRID = internal_grid,
           WEIGHTS = internal_weights,
-          YB = FIT$data$yb,
           N_GRADES = FIT$data$n_grades,
           N_EXAMS = FIT$data$n_exams,
           GRFLAG = TRUE,
-          ROTGRID = TRUE
-        )$gr
-      }
+          LATPARFLAG = TRUE,
+          MOD=FIT$mod
+        )$gr}
+
 
       numHess <- numDeriv::jacobian(func = NGR, x=FIT$fit$par)
       out[["numHess"]] <- numHess
       internal_invH <- MASS::ginv(numHess)
-
-    }else{
-      stop("Numerical derivatives not implemented yet")
-    }
   }
 
 

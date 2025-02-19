@@ -22,7 +22,7 @@ parVec2List(
 
 \item{N_EXAMS}{number of exams.}
 
-\item{N_COV}{number of covariates in the competing risk model}
+\item{N_COV}{number of latent covariates}
 
 \item{YB}{Maximum number of years before graduation}
 

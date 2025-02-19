@@ -25,9 +25,9 @@ namespace exams{
       const unsigned int EXAM,
       const unsigned int GRADE,
       const double DAY,
-      const double MAX_DAY,
+      const int MAX_DAY,
       const bool OBSFLAG,
-      const Eigen::Ref<const Eigen::VectorXd> THETA_IRT,
+      const Eigen::Ref<const Eigen::VectorXd> THETA,
       const unsigned int N_GRADES,
       const unsigned int N_EXAMS,
       const double ABILITY,
@@ -36,13 +36,18 @@ namespace exams{
   ){
     double out, logpExam, logpTime;
 
+
     if(OBSFLAG){
-      logpExam = exams::pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
-      logpTime = exams::pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, false, true);
+      logpExam = exams::pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
+      logpTime = exams::pTimeExam(EXAM, DAY, THETA, N_GRADES,  N_EXAMS, SPEED, false, true);
       out = logpExam+logpTime;
     }else{
-      logpExam = exams::pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
-      logpTime = exams::pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, true, true);
+      logpExam = exams::pGreaterGrades(1, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
+      logpTime = exams::pTimeExam(EXAM, MAX_DAY, THETA, N_GRADES,  N_EXAMS, SPEED, true, true);
+      // Rcpp::Rcout<<"\nexamLik |:"<< ABILITY <<", "<< SPEED<<"\n";
+      // Rcpp::Rcout<<"MAX_DAY |:"<< MAX_DAY <<"\n";
+      // Rcpp::Rcout << "logpExam "<< logpExam<< " | logpTime "<< logpTime<<"\n";
+
       out = log1mexp(-logpExam-logpTime);
       out = std::max(-10000.0, out);  // avoid log(0)
     }
@@ -80,31 +85,37 @@ namespace exams::grad{
      const double DAY,
      const double MAX_DAY,
      const bool OBSFLAG,
-     const Eigen::Ref<const Eigen::VectorXd> THETA_IRT,
+     const Eigen::Ref<const Eigen::VectorXd> THETA,
+     const Eigen::Ref<const Eigen::VectorXd> COVARIATES,
      const unsigned int N_GRADES,
      const unsigned int N_EXAMS,
      const double ABILITY,
      const double SPEED,
-     const bool ROTATED
+     const bool LATPARFLAG
  ){
    double logp, logpGrade, logpTime;
-   const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+   const int dim_irt = N_EXAMS*(N_GRADES+3);
+   const int dim_lat = 2+2*COVARIATES.size();
 
-   Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+2);
+   Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+dim_lat);
 
 
    if(OBSFLAG){
-     logpGrade = exams::pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
-     logpTime = exams::pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, false, true);
-     Eigen::VectorXd grlTime = exams::grad::gr_pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, false, ROTATED, true);
-     Eigen::VectorXd grGrade = exams::grad::gr_pGrade(GRADE,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
+     logpGrade = exams::pGrade(GRADE, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
+     logpTime = exams::pTimeExam(EXAM, DAY, THETA, N_GRADES,  N_EXAMS, SPEED, false, true);
+     Eigen::VectorXd grlTime = exams::grad::gr_pTimeExam2(EXAM, DAY, THETA, COVARIATES, N_GRADES, N_EXAMS, SPEED, ABILITY, false, LATPARFLAG, true);
+     // Rcpp::Rcout << "Speed:"<< SPEED<<", Ability:"<<ABILITY<<", l1:"<<THETA(dim_irt)<<", l2:"<< THETA(dim_irt+1);
+     // Rcpp::Rcout << ", grl1:"<< grlTime(dim_irt)<< ", grl2:"<< grlTime(dim_irt+1)<< "\n";
+     Eigen::VectorXd grGrade = exams::grad::gr_pGrade2(GRADE,EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+     // Rcpp::Rcout << "Grades:"<< grGrade.segment(dim_irt,2)<< "\n";
+
      gr = grlTime + grGrade /exp(logpGrade);
      logp = logpGrade+logpTime;
    }else{
-     logpGrade = exams::pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
-     logpTime = exams::pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, true, true);
-     Eigen::VectorXd grGrade = exams::grad::gr_pGreaterGrades(1,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-     Eigen::VectorXd grTime = exams::grad::gr_pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, true, ROTATED, false);
+     logpGrade = exams::pGreaterGrades(1, EXAM, THETA, N_GRADES, N_EXAMS, ABILITY, true);
+     logpTime = exams::pTimeExam(EXAM, MAX_DAY, THETA, N_GRADES,  N_EXAMS, SPEED, true, true);
+     Eigen::VectorXd grGrade = exams::grad::gr_pGreaterGrades2(1,EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
+     Eigen::VectorXd grTime = exams::grad::gr_pTimeExam2(EXAM, MAX_DAY, THETA, COVARIATES, N_GRADES, N_EXAMS, SPEED, ABILITY, true, LATPARFLAG, false);
      gr = -(grTime*exp(logpGrade) + exp(logpTime)*grGrade);
      logp = log1mexp(-logpGrade-logpTime);
      logp = std::max(-1000.0, logp);  // avoid log(0)

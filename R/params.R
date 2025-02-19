@@ -58,7 +58,7 @@ irtMat2Vec <- function(MAT){
 #' @param THETA Parameter vector.
 #' @param N_GRADES number of grades modeled.
 #' @param N_EXAMS number of exams.
-#' @param N_COV number of covariates in the competing risk model
+#' @param N_COV number of latent covariates
 #' @param LABS_EXAMS optional label for exams
 #' @param LABS_GRADES optional label for grades
 #' @param LABS_COV optional labels for covariates in the competing risk model
@@ -67,6 +67,7 @@ irtMat2Vec <- function(MAT){
 #' @export
 parVec2List <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB=5, LABS_EXAMS=NULL, LABS_GRADES=NULL, LABS_COV=NULL){
   dim_irt <- N_EXAMS * (N_GRADES+3)
+  dim_lat <- 2+2*(N_COV)
 
   if(is.null(LABS_COV)) LABS_COV <- paste0("X", 1:N_COV)
   out <- list()
@@ -82,13 +83,20 @@ parVec2List <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB=5, LABS_EXAMS=NULL, 
   L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
   out[["lat_var"]] <- L %*% t(L)
 
-  # Competing Risk parameters
-  parCR <- THETA[(dim_irt+3):length(THETA)]
+  if(N_COV>0){
+    B <- matrix(THETA[(dim_irt+3):(dim_irt+2+2*N_COV)], 2, N_COV, byrow=TRUE)
+    rownames(B) <- c("ability", "speed")
+    colnames(B) <- LABS_COV
+    out[["lat_reg"]] <- B
+  }
+
+  # Competing outcomes parameters
+  parCR <- THETA[(dim_irt+dim_lat+1):length(THETA)]
   out[["cr"]][["beta"]] <- matrix(parCR[-1], ncol=2)
-  rownames(out$cr$beta) <- c(paste0("year", 1:YB), LABS_COV, "ability", "speed")
+  rownames(out$cr$beta) <- c(paste0("year", 1:YB), "ability", "speed")
   colnames(out$cr$beta) <- c("dropout", "transfer")
 
-  out[["cr"]][["grad"]] <- parCR[[1]]
+  out[["cr"]][["graduation"]] <- parCR[[1]]
 
   return(out)
 }
@@ -102,9 +110,12 @@ parList2Vec <- function(LIST){
 
   theta_irt <- irtMat2Vec(LIST[["irt"]])
   L <- t(chol(LIST[["lat_var"]]))
-  theta_lat <- c(L[2,1], L[2,2])
-  theta_cr <- c(LIST$cr$grad,as.numeric(LIST$cr$beta))
+  B <- LIST[["lat_reg"]]
 
+  theta_lat <- c(L[2,1], L[2,2] )
+  if(!is.null(B)) theta_lat <- c(theta_lat, as.numeric(t(B)))
+
+  theta_cr <- c(LIST$cr$grad,as.numeric(LIST$cr$beta))
   theta <- c(theta_irt, theta_lat, theta_cr)
 
   return(theta)
@@ -129,6 +140,9 @@ parList2Vec <- function(LIST){
 #' @export
 parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, LABS_GRADES=NULL, LABS_COV=NULL, TIDY=FALSE){
   dim_irt <- N_EXAMS * (N_GRADES+3)
+  dim_lat <- 2+2*N_COV
+  dim_cr  <- 2*(YB+2)+1
+
   if(is.null(LABS_COV)) LABS_COV <- paste0("X", 1:N_COV)
   out <- list()
 
@@ -147,6 +161,9 @@ parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, L
   lat_cor <- S[2,1]/speed_sd
 
   latVec <- c(speed_sd, lat_cor)
+  if(N_COV>0){
+    latVec <- c(latVec, THETA[(dim_irt+3):(dim_irt+dim_lat)])
+  }
 
 
   if(TIDY){
@@ -157,16 +174,27 @@ parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, L
           ~group, ~type, ~par,
           "latent", "speed_sd", speed_sd,
           "latent", "correlation", lat_cor,
-          "graduation", "intercept", THETA[(dim_irt+3)]
+
         )
-      ) |>
+      )|>
       bind_rows(
-        tibble(group=c(rep("dropout", YB+N_COV+2), rep("transfer", YB+N_COV+2)),
-               type =c(paste0("year",1:YB), LABS_COV, "ability", "speed", paste0("year",1:YB), LABS_COV, "ability", "speed"),
-               par=THETA[-(1:(dim_irt+3))])
+        tibble(group = if(N_COV>0) rep(paste0("latent_regression:",LABS_COV), 2),
+               type  = if(N_COV>0) c(rep("ability", N_COV), rep("speed", N_COV)),
+               par   = if(N_COV>0) THETA[(dim_irt+3):(dim_irt+dim_lat)])
+      )|>
+      bind_rows(
+        tribble(
+          ~group, ~type, ~par,
+          "graduation", "intercept", THETA[(dim_irt+dim_lat+1)]
+        )
+      )|>
+      bind_rows(
+        tibble(group=c(rep("dropout", YB+2), rep("transfer", YB+2)),
+               type =c(paste0("year",1:YB), "ability", "speed", paste0("year",1:YB), "ability", "speed"),
+               par=THETA[(dim_irt+dim_lat+2):(dim_irt+dim_lat+dim_cr)])
       )
   }else{
-    out <- c(irtVec, latVec, THETA[-(1:(dim_irt+2))])
+    out <- c(irtVec, latVec, THETA[(dim_irt+dim_lat+1):(dim_irt+dim_lat+dim_cr)])
   }
 
   return(out)

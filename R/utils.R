@@ -115,7 +115,9 @@ dataRestruct <- function(
   fulldata <- nestedIRT |> left_join(crtib, by="subject_id")
 
   dim_irt <- n_exams * (n_grades+3)
-  dim_cr <- (yb + n_cov + 2)*2+1
+  dim_lat <- 2+2*n_cov
+  dim_cr <- (yb + 2)*2+1
+
 
 
   out <- list(
@@ -134,6 +136,7 @@ dataRestruct <- function(
     "timeMat" = timeMat,
     "dim_irt"= dim_irt,
     "dim_cr" = dim_cr,
+    "dim_lat" = dim_lat,
     "outcome" = outcome_vec,
     "first_year" = fy_vec,
     "last_year" = ly_vec,

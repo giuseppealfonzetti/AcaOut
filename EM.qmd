@@ -52,17 +52,17 @@ weights <- apply(weights, 1, prod)
 Fit an initial graded response time censored (GRTC) model via EM.
 
 ```{r grtcEM}
-tictoc::tic()
+{tictoc::tic()
 grtcEM <- fit_EM(
   DATA = dat,
   GRID=nodes,
   WEIGHTS=weights,
   M_MAX_ITER = 100,
-  MAX_ITER = 15,
-  TOL=1e-3,
+  MAX_ITER = 20,
+  TOL=5e-4,
   MOD = "grtc"
 )
-tictoc::toc()
+tictoc::toc()}
 
 saveRDS(grtcEM, file = "grtcEM.rds")
 ```
@@ -70,18 +70,18 @@ saveRDS(grtcEM, file = "grtcEM.rds")
 Use GRTC estimates to initialise the EM of the full model
 
 ```{r fullEM}
-
-fitCCR <- crirt::fit_CCR(DATA=dat, PAR_START = grtcEM$fit$par, LATMAT = compute_map(grtcEM, TIDY = FALSE))
+map_grtc <- compute_map(grtcEM, TIDY = FALSE)
+fitCCR <- crirt::fit_CCR(DATA=dat, PAR_START = grtcEM$fit$par, LATMAT = map_grtc)
 par_start <- grtcEM$fit$par
-par_start[(dat$dim_irt+3):(dat$dim_irt+dat$dim_cr+2)] <- fitCCR$fit$par
+par_start[(dat$dim_irt+dat$dim_lat+1):(dat$dim_irt+dat$dim_cr+dat$dim_lat)] <- fitCCR$fit$par
 
 tictoc::tic()
 fullEM <- fit_EM(
   DATA = dat,
   GRID=nodes,
   WEIGHTS=weights,
-  M_MAX_ITER = 100,
-  MAX_ITER = 50,
+  M_MAX_ITER = 15,
+  MAX_ITER = 10,
   TOL=1e-5,
   MOD = "full",
   THETA_START = par_start
@@ -94,7 +94,7 @@ saveRDS(fullEM, file = "fullEM.rds")
 Finalise the estimation using BFGS. While improving on the accuracy of the estimates, it also provides an approximation of the inverse negative Hessian.
 
 ```{r fullBFGS}
-tictoc::tic()
+{tictoc::tic()
 fullBFGS <- fit_BFGS(
   DATA = dat,
   GRID=nodes,
@@ -102,7 +102,7 @@ fullBFGS <- fit_BFGS(
   MOD = "full",
   THETA_START = fullEM$fit$par
 )
-tictoc::toc()
+tictoc::toc()}
 saveRDS(fullBFGS, file = "fullBFGS.rds")
 
 ```
@@ -112,7 +112,10 @@ saveRDS(fullBFGS, file = "fullBFGS.rds")
 Compute the asymptotic standard errors
 
 ```{r fullSE}
-fullSE <- compute_stderr(fullBFGS, TIDY = TRUE)
+tictoc::tic()
+fullSE <- compute_stderr(fullBFGS, NUMDER = TRUE, TIDY = TRUE)
+tictoc::toc()
+saveRDS(fullSE, file = "fullSE.rds")
 
 DT::datatable(fullSE[["se"]], filter = "top") |>
     DT::formatRound(columns=c('par', 'se', 'lb', 'ub', 'ub'), digits=3)
@@ -147,8 +150,10 @@ resCurves_tib <- tibble(ability = seq(-3,3,length.out=300)) |>
            THETA = c(fullBFGS$fit$par, rep(NA, dat$dim_cr)),
            N_GRADES = fullBFGS$data$n_grades,
            N_EXAMS = fullBFGS$data$n_exams,
+           COVARIATES = rep(0, fullBFGS$data$n_cov),
            ABILITY = A,
-           LOGFLAG=FALSE)$prob
+           LOGFLAG = FALSE,
+           LATPARFLAG=FALSE)$prob
   }))
 
 resCurves_tib |>
@@ -222,7 +227,7 @@ We can now plot the predicted competing risk probabilities by taking into accoun
 ```{r}
 cr_grid <- expand_grid(
   ability = seq(-1,3, by=1),
-  speed = seq(-.2,.2, by=.2),
+  speed = seq(-.5,.5, by=.5),
   year = 1:5
 )
 
@@ -236,41 +241,47 @@ out_tib <- cr_grid |>
           EXAM=exam,
           DAY=year*365+180,
           THETA=theta_chosen,
+          COVARIATES = rep(0, fullBFGS$data$n_cov),
           N_GRADES=fullBFGS$data$n_grades,
           N_EXAMS=fullBFGS$data$n_exams,
           SPEED=speed,
           ABILITY=ability,
           CDFFLAG=TRUE,
-          ROTATED=FALSE,
+          LATPARFLAG=FALSE,
           LOGFLAG=FALSE)$prob*
           cpp_pGreaterGrades(
             GRADE=1,
             EXAM=exam,
             THETA=theta_chosen,
+            COVARIATES = rep(0, fullBFGS$data$n_cov),
             N_GRADES=fullBFGS$data$n_grades,
             N_EXAMS=fullBFGS$data$n_exams,
             ABILITY=ability,
-            LOGFLAG=FALSE)$prob}))-
+            LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob}))-
         prod(sapply(todo_exams_idx, function(exam){
           cpp_pTimeExam(
             EXAM=exam,
             DAY=(year-1)*365+180,
             THETA=theta_chosen,
+            COVARIATES = rep(0, fullBFGS$data$n_cov),
             N_GRADES=fullBFGS$data$n_grades,
             N_EXAMS=fullBFGS$data$n_exams,
             SPEED=speed,
             ABILITY=ability,
             CDFFLAG=TRUE,
-            ROTATED=FALSE,
+            LATPARFLAG=FALSE,
             LOGFLAG=FALSE)$prob*
             cpp_pGreaterGrades(
               GRADE=1,
               EXAM=exam,
               THETA=theta_chosen,
+              COVARIATES = rep(0, fullBFGS$data$n_cov),
               N_GRADES=fullBFGS$data$n_grades,
               N_EXAMS=fullBFGS$data$n_exams,
               ABILITY=ability,
-              LOGFLAG=FALSE)$prob}))
+              LOGFLAG=FALSE,
+              LATPARFLAG=FALSE)$prob}))
     }),
     survival_prev = pmap_dbl(list(year, ability, speed), function(year, ability, speed){
 
@@ -284,45 +295,54 @@ out_tib <- cr_grid |>
               EXAM=exam,
               DAY=yr*365+180,
               THETA=theta_chosen,
+              COVARIATES = rep(0, fullBFGS$data$n_cov),
               N_GRADES=fullBFGS$data$n_grades,
               N_EXAMS=fullBFGS$data$n_exams,
               SPEED=speed,
               ABILITY=ability,
               CDFFLAG=TRUE,
-              ROTATED=FALSE,
+              LATPARFLAG=FALSE,
               LOGFLAG=FALSE)$prob*
               cpp_pGreaterGrades(
                 GRADE=1,
                 EXAM=exam,
                 THETA=theta_chosen,
+                COVARIATES = rep(0, fullBFGS$data$n_cov),
                 N_GRADES=fullBFGS$data$n_grades,
                 N_EXAMS=fullBFGS$data$n_exams,
                 ABILITY=ability,
-                LOGFLAG=FALSE)$prob}))
+                LOGFLAG=FALSE,
+                LATPARFLAG=FALSE)$prob}))
 
           haz_g <- pL*cpp_hazard(
             OUTCOME = 1,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
-            YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,            YB=fullBFGS$data$yb,
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           haz_d <- (1-pL)*cpp_hazard(
             OUTCOME = 2,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
-            YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,            YB=fullBFGS$data$yb,
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           haz_t <- (1-pL)*cpp_hazard(
             OUTCOME = 3,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
-            YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,            YB=fullBFGS$data$yb,
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           return(1-haz_g-haz_d-haz_t)
         }))
@@ -339,45 +359,55 @@ out_tib <- cr_grid |>
               EXAM=exam,
               DAY=yr*365+180,
               THETA=theta_chosen,
+              COVARIATES = rep(0, fullBFGS$data$n_cov),
               N_GRADES=fullBFGS$data$n_grades,
               N_EXAMS=fullBFGS$data$n_exams,
               SPEED=speed,
               ABILITY=ability,
               CDFFLAG=TRUE,
-              ROTATED=FALSE,
+              LATPARFLAG=FALSE,
               LOGFLAG=FALSE)$prob*
               cpp_pGreaterGrades(
                 GRADE=1,
                 EXAM=exam,
                 THETA=theta_chosen,
+                COVARIATES = rep(0, fullBFGS$data$n_cov),
                 N_GRADES=fullBFGS$data$n_grades,
                 N_EXAMS=fullBFGS$data$n_exams,
                 ABILITY=ability,
-                LOGFLAG=FALSE)$prob}))
+                LOGFLAG=FALSE,
+                LATPARFLAG=FALSE)$prob}))
 
           haz_g <- pL*cpp_hazard(
             OUTCOME = 1,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
-            YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,            YB=fullBFGS$data$yb,
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           haz_d <- (1-pL)*cpp_hazard(
             OUTCOME = 2,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
-            YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,            YB=fullBFGS$data$yb,
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           haz_t <- (1-pL)*cpp_hazard(
             OUTCOME = 3,
             YEAR= yr,
             THETA=theta_chosen,
-            COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+            COVARIATES = rep(0, fullBFGS$data$n_cov),
+            SPEED=speed,
+            ABILITY=ability,            
             YB=fullBFGS$data$yb,
-            LOGFLAG=FALSE)$prob
+            # LOGFLAG=FALSE,
+            LATPARFLAG=FALSE)$prob
 
           return(1-haz_g-haz_d-haz_t)
         }))
@@ -393,28 +423,34 @@ out_tib <- cr_grid |>
               EXAM=exam,
               DAY=year*365+180,
               THETA=theta_chosen,
+              COVARIATES = rep(0, fullBFGS$data$n_cov),
               N_GRADES=fullBFGS$data$n_grades,
               N_EXAMS=fullBFGS$data$n_exams,
               SPEED=speed,
               ABILITY=ability,
               CDFFLAG=TRUE,
-              ROTATED=FALSE,
+              LATPARFLAG=FALSE,
               LOGFLAG=FALSE)$prob*
               cpp_pGreaterGrades(
                 GRADE=1,
                 EXAM=exam,
                 THETA=theta_chosen,
+                COVARIATES = rep(0, fullBFGS$data$n_cov),
                 N_GRADES=fullBFGS$data$n_grades,
                 N_EXAMS=fullBFGS$data$n_exams,
                 ABILITY=ability,
-                LOGFLAG=FALSE)$prob}))
+                LOGFLAG=FALSE,
+                LATPARFLAG=FALSE)$prob}))
       hg <- cpp_hazard(
               OUTCOME = 1,
               YEAR= year,
               THETA=theta_chosen,
-              COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+              COVARIATES = rep(0, fullBFGS$data$n_cov),
+              SPEED=speed,
+              ABILITY=ability,
               YB=fullBFGS$data$yb,
-              LOGFLAG=FALSE)$prob
+              # LOGFLAG=FALSE,
+              LATPARFLAG=FALSE)$prob
 
       return(hg*pL*survival_prev)
     }),
@@ -426,28 +462,33 @@ out_tib <- cr_grid |>
                                   EXAM=exam,
                                   DAY=year*365+180,
                                   THETA=theta_chosen,
+                                  COVARIATES = rep(0, fullBFGS$data$n_cov),
                                   N_GRADES=fullBFGS$data$n_grades,
                                   N_EXAMS=fullBFGS$data$n_exams,
                                   SPEED=speed,
                                   ABILITY=ability,
                                   CDFFLAG=TRUE,
-                                  ROTATED=FALSE,
+                                  LATPARFLAG=FALSE,
                                   LOGFLAG=FALSE)$prob*
                                   cpp_pGreaterGrades(
                                     GRADE=1,
                                     EXAM=exam,
                                     THETA=theta_chosen,
+                                    COVARIATES = rep(0, fullBFGS$data$n_cov),
                                     N_GRADES=fullBFGS$data$n_grades,
                                     N_EXAMS=fullBFGS$data$n_exams,
                                     ABILITY=ability,
-                                    LOGFLAG=FALSE)$prob}))
+                                    LOGFLAG=FALSE,
+                                    LATPARFLAG=FALSE)$prob}))
                               hd <- cpp_hazard(
                                 OUTCOME = 2,
                                 YEAR= year,
                                 THETA=theta_chosen,
-                                COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+                                COVARIATES = rep(0, fullBFGS$data$n_cov),
+                                SPEED=speed,
+                                ABILITY=ability,
                                 YB=fullBFGS$data$yb,
-                                LOGFLAG=FALSE)$prob
+                                LATPARFLAG=FALSE)$prob
 
                               return(hd*(1-pL)*survival_prev)
                             }),
@@ -459,28 +500,33 @@ out_tib <- cr_grid |>
                                EXAM=exam,
                                DAY=year*365+180,
                                THETA=theta_chosen,
+                               COVARIATES = rep(0, fullBFGS$data$n_cov),
                                N_GRADES=fullBFGS$data$n_grades,
                                N_EXAMS=fullBFGS$data$n_exams,
                                SPEED=speed,
                                ABILITY=ability,
                                CDFFLAG=TRUE,
-                               ROTATED=FALSE,
+                               LATPARFLAG=FALSE,
                                LOGFLAG=FALSE)$prob*
                                cpp_pGreaterGrades(
                                  GRADE=1,
                                  EXAM=exam,
                                  THETA=theta_chosen,
+                                 COVARIATES = rep(0, fullBFGS$data$n_cov),
                                  N_GRADES=fullBFGS$data$n_grades,
                                  N_EXAMS=fullBFGS$data$n_exams,
                                  ABILITY=ability,
-                                 LOGFLAG=FALSE)$prob}))
+                                 LOGFLAG=FALSE,
+                                 LATPARFLAG=FALSE)$prob}))
                            ht <- cpp_hazard(
                              OUTCOME = 3,
                              YEAR= year,
                              THETA=theta_chosen,
-                             COVARIATES = c(as.numeric(colMeans(fullBFGS$data$X)), ability, speed),
+                             COVARIATES = rep(0, fullBFGS$data$n_cov),
+                             SPEED=speed,
+                             ABILITY=ability,
                              YB=fullBFGS$data$yb,
-                             LOGFLAG=FALSE)$prob
+                             LATPARFLAG=FALSE)$prob
 
                            return(ht*(1-pL)*survival_prev)
                          })

@@ -1,12 +1,23 @@
 n_grades <- 4L
-n_exams <- 3L
-n_cov <- 1L
-yb <- 3
-dim_cr <- 2*(yb+n_cov+2)+1
-dim_irt_lat <- n_exams*(n_grades+3)+2
+n_exams  <- 3L
+n_cov    <- 10L
+yb       <- 5L
+
+dim_irt <- n_exams*(n_grades+3)
+dim_lat <- 2+2*n_cov
+dim_cr  <- 2*(yb+2)+1
+
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- c(rnorm(dim_irt_lat),rep(NA, dim_cr))
+labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
+
+set.seed(123)
+theta_irt <- rnorm(dim_irt)
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_cr <- rnorm(dim_cr)
+theta <- c(theta_irt, theta_lat, theta_cr)
+
+X <- rnorm(n_cov)
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
@@ -15,7 +26,16 @@ parList <- parVec2List(
   YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
-mat <- parList$irt
+
+mat <- irtVec2Mat(
+  THETA_IRT = theta_irt,
+  N_GRADES = n_grades,
+  N_EXAMS = n_exams,
+  LABS_EXAMS = labs_exams,
+  LABS_GRADES = labs_grades
+)
+
+
 
 #### test times probabilities output values #####
 set.seed(111)
@@ -25,13 +45,14 @@ FUNTIME <- function(x, CDFFLAG, LOGFLAG, SPEED, ABILITY=0, ROTATED=FALSE, OUT="p
     EXAM = exam-1,
     DAY = day,
     THETA = x,
+    COVARIATES = X,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     SPEED = SPEED,
     ABILITY = ABILITY,
     CDFFLAG = CDFFLAG,
     LOGFLAG = LOGFLAG,
-    ROTATED = ROTATED
+    LATPARFLAG = ROTATED
   )
   if(OUT=="prob"){
     return(obj$prob)
@@ -141,14 +162,24 @@ for (speed_index in 1:length(speeds)) {
 
 n <- 10
 n_grades <- 4L
-n_exams <- 10L
-n_cov <- 1L
-yb <- 3
-dim_cr <- 2*(yb+n_cov+2)+1
-dim_irt_lat <- n_exams*(n_grades+3)+2
+n_exams  <- 3L
+n_cov    <- 10L
+yb       <- 5L
+
+dim_irt <- n_exams*(n_grades+3)
+dim_lat <- 2+2*n_cov
+dim_cr  <- 2*(yb+2)+1
+
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- c(rnorm(dim_irt_lat),rep(NA, dim_cr))
+labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
+
+set.seed(123)
+theta_irt <- rnorm(dim_irt)
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_cr <- rnorm(dim_cr)
+theta <- c(theta_irt, theta_lat, theta_cr)
+
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
@@ -161,41 +192,46 @@ irtMat <- parList$irt
 latMat <- matrix(c(rnorm((n-1)*2), -5,5),n,2, byrow = TRUE)
 #### sim times ####
 set.seed(123)
-timeMat <- matrix(0, n, n_exams)
+timeMat <- matrix(NA, n, n_exams)
 for (i in 1:n) {
   for (e in 1:n_exams) {
     timeMat[i,e] <- exp(
       rnorm(1,
-            mean = irtMat[e, n_grades + 2]-latMat[i,2],
-            sd = 1/irtMat[e, n_grades + 3])
+            mean = mat[e, n_grades + 2]-latMat[i,2],
+            sd = 1/mat[e, n_grades + 3])+1
     )
   }
 }
+timeMat <- ceiling(timeMat)
 
 
 #### checks #####
 
-FUNTIME <- function(x, EXAM, DAY, CDFFLAG, LOGFLAG, SPEED, ABILITY=0, ROTATE=FALSE, OUT="prob"){
-  internal_speed <- SPEED
-  if(ROTATE){
-    internal_speed <- x[n_exams*(n_grades+3)+1]*ABILITY + x[n_exams*(n_grades+3)+2]*SPEED
+FUNTIME <- function(x, EXAM, DAY, CDFFLAG, LOGFLAG, SPEED, COVARIATES=X, ABILITY=0, LATPARFLAG=FALSE, OUT="prob"){
+  ab <- ABILITY
+  sp <- SPEED
+  if(LATPARFLAG){
+    ab <- ABILITY + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
+    sp <- x[dim_irt+1]*ABILITY + x[dim_irt+2]*SPEED + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
+
   obj <- cpp_pTimeExam(
     EXAM = EXAM,
     DAY = DAY,
-    THETA = x,
+    THETA=x,
+    COVARIATES = COVARIATES,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
-    SPEED = internal_speed,
-    ABILITY = ABILITY,
+    SPEED = sp,
+    ABILITY = ab,
     CDFFLAG = CDFFLAG,
     LOGFLAG = LOGFLAG,
-    ROTATED = ROTATE
+    LATPARFLAG = LATPARFLAG
   )
   if(OUT=="prob"){
     return(obj$prob)
   }else{
-    return(obj$gr[1:dim_irt_lat])
+    return(obj$gr[1:(dim_irt+dim_lat)])
   }
 }
 
@@ -205,16 +241,17 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = FALSE, ROTATE = FALSE)
+                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = FALSE, LATPARFLAG = FALSE)
       grcpp <- FUNTIME(
         x = theta,
-        EXAM = exam-1, DAY = timeMat[i, exam],
+        EXAM = exam-1,
+        DAY = timeMat[i, exam],
         SPEED = latMat[i,2],
         CDFFLAG = FALSE,
         ABILITY = latMat[i,1],
-        ROTATE = FALSE,
+        LATPARFLAG = FALSE,
         LOGFLAG = FALSE,
         OUT="gr"
       )
@@ -224,16 +261,16 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = TRUE, ROTATE = FALSE)
+                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = TRUE, LATPARFLAG = FALSE)
       grcpp <- FUNTIME(
         x = theta,
         EXAM = exam-1, DAY = timeMat[i, exam],
         SPEED = latMat[i,2],
         CDFFLAG = FALSE,
         ABILITY = latMat[i,1],
-        ROTATE = FALSE,
+        LATPARFLAG = FALSE,
         LOGFLAG = TRUE,
         OUT="gr"
       )
@@ -244,9 +281,9 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = FALSE, ROTATE = TRUE)
+                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = FALSE, LATPARFLAG = TRUE)
       grcpp <- FUNTIME(
         EXAM = exam-1,
         DAY = timeMat[i, exam],
@@ -254,7 +291,7 @@ for (i in 1:n) {
         SPEED = latMat[i,2],
         CDFFLAG = FALSE,
         ABILITY = latMat[i,1],
-        ROTATE = TRUE,
+        LATPARFLAG = TRUE,
         LOGFLAG = FALSE,
         OUT="gr"
       )
@@ -265,9 +302,10 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = TRUE, ROTATE = TRUE)
+                                ABILITY = latMat[i,1], CDFFLAG = FALSE, LOGFLAG = TRUE,
+                                LATPARFLAG = TRUE)
       grcpp <- FUNTIME(
         EXAM = exam-1,
         DAY = timeMat[i, exam],
@@ -275,7 +313,7 @@ for (i in 1:n) {
         SPEED = latMat[i,2],
         CDFFLAG = FALSE,
         ABILITY = latMat[i,1],
-        ROTATE = TRUE,
+        LATPARFLAG = TRUE,
         LOGFLAG = TRUE,
         OUT="gr"
       )
@@ -287,9 +325,9 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = TRUE, LOGFLAG = FALSE, ROTATE = FALSE)
+                                ABILITY = latMat[i,1], CDFFLAG = TRUE, LOGFLAG = FALSE, LATPARFLAG = FALSE)
       grcpp <- FUNTIME(
         EXAM = exam-1,
         DAY = timeMat[i, exam],
@@ -297,7 +335,7 @@ for (i in 1:n) {
         SPEED = latMat[i,2],
         CDFFLAG = TRUE,
         ABILITY = latMat[i,1],
-        ROTATE = FALSE,
+        LATPARFLAG = FALSE,
         LOGFLAG = FALSE,
         OUT="gr"
       )
@@ -308,9 +346,9 @@ for (i in 1:n) {
       skip_if_not_installed("numDeriv")
       skip_if(is.na(timeMat[i, exam]))
 
-      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:dim_irt_lat],
+      numGrad <- numDeriv::grad(func = FUNTIME, x = theta[1:(dim_irt+dim_lat)],
                                 EXAM = exam-1, DAY = timeMat[i, exam], SPEED = latMat[i,2],
-                                ABILITY = latMat[i,1], CDFFLAG = TRUE, LOGFLAG = FALSE, ROTATE = TRUE)
+                                ABILITY = latMat[i,1], CDFFLAG = TRUE, LOGFLAG = FALSE, LATPARFLAG = TRUE)
       grcpp <- FUNTIME(
         EXAM = exam-1,
         DAY = timeMat[i, exam],
@@ -318,7 +356,7 @@ for (i in 1:n) {
         SPEED = latMat[i,2],
         CDFFLAG = TRUE,
         ABILITY = latMat[i,1],
-        ROTATE = TRUE,
+        LATPARFLAG = TRUE,
         LOGFLAG = FALSE,
         OUT="gr"
       )
@@ -327,4 +365,8 @@ for (i in 1:n) {
     })
   }
 }
+
+
+
+
 

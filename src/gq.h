@@ -30,7 +30,8 @@ namespace gq{
       const int YB,
       const std::string MOD,
       const bool GRFLAG = true,
-      const bool LATPARFLAG = true
+      const bool LATPARFLAG = true,
+      const bool HFLAG = false
   ){
     double ll = 0;
 
@@ -40,6 +41,7 @@ namespace gq{
     const int dim_irt = N_EXAMS*(N_GRADES+3);
     const int dim_lat = 2+2*n_cov;
     Eigen::VectorXd grll = Eigen::VectorXd::Zero(THETA.size());
+    Eigen::MatrixXd H    = Eigen::MatrixXd::Zero(THETA.size(),THETA.size());
 
 
     Eigen::MatrixXd grid=GRID;
@@ -120,6 +122,10 @@ namespace gq{
       ll += lli;
       if(GRFLAG){
         grll += gr*WEIGHTS/exp(lli);
+
+        if(HFLAG){
+          H+= (gr*WEIGHTS/exp(lli))*(gr*WEIGHTS/exp(lli)).transpose();
+        }
       }
     }
 
@@ -127,6 +133,7 @@ namespace gq{
       Rcpp::List::create(
         Rcpp::Named("grid") = grid,
         Rcpp::Named("llMat") = llMat,
+        Rcpp::Named("H") = H,
         Rcpp::Named("gr") = grll,
         Rcpp::Named("ll") = ll
       );

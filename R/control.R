@@ -52,7 +52,7 @@ check_outcome <- function(VEC){
   stopifnot(is.vector(VEC))
   stopifnot(all(is.finite(VEC)))
   if(!all(VEC>=0 & VEC<=3)) stop("Outcomes not coded correctly. Use 0 for enrollment, 1 for graduation, 2 for dropout, 3 for transfer.")
-  if(dim(table(outcome))!=4) stop("One or more outcomes have not been observed on the whole dataset.")
+  if(dim(table(VEC))!=4) stop("One or more outcomes have not been observed on the whole dataset.")
   VEC[is.finite(VEC)] <- as.integer(VEC[is.finite(VEC)])
   return(VEC)
 }
@@ -74,9 +74,17 @@ check_yearle <- function(VEC){
   VEC[!is.finite(VEC)] <- 100L
   return(VEC)
 }
+check_maxt <- function(VEC){
+  stopifnot(is.vector(VEC))
+  stopifnot(all(is.finite(VEC)))
+  stopifnot(all(VEC[is.finite(VEC)]>0))
+  VEC[is.finite(VEC)] <- as.integer(VEC[is.finite(VEC)])
+  return(VEC)
+}
 
-check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, LAST_EXAM_YEAR,
-                       LABS_EXAMS=NULL, LABS_OBS=NULL, LABS_GRADES=NULL, LABS_COV=NULL){
+#' @export
+check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, LAST_EXAM_YEAR, MAX_TIME,
+                       LABS_EXAMS=NULL, LABS_OBS=NULL, LABS_GRADES=NULL, LABS_COV=NULL, SUBSET=NULL, VERBOSE=FALSE){
 
   # Check input by input
   GRADES <- check_grades(GRADES)
@@ -103,6 +111,10 @@ check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, L
   LAST_EXAM_YEAR <- check_yearle(LAST_EXAM_YEAR)
   names(LAST_EXAM_YEAR) <- LABS_OBS
 
+  MAX_TIME <- check_maxt(MAX_TIME)
+  names(MAX_TIME) <- LABS_OBS
+
+
   X <- check_covariates(X)
   colnames(X) <- LABS_COV
   rownames(X) <- LABS_OBS
@@ -121,6 +133,8 @@ check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, L
   stopifnot(length(LAST_EXAM_YEAR)==n_obs)
   stopifnot(nrow(X)==n_obs)
 
+  if(is.null(SUBSET)) SUBSET <- 1:n_obs
+
   # parameter dimensions
   dim_grtcm <- n_exams * (n_grades+3)
   dim_lat   <- 2+2*n_cov
@@ -136,10 +150,10 @@ check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, L
   }
 
   tmp <- sapply(1:n_obs, function(IDX) {
-    if(!all(!is.na(GRADES[IDX, TODO[IDX,]])) & OUTCOME[IDX]==1) warning(paste0("Student at row ", IDX, " (ID:", LABS_OBS[IDX], ") is coded as graduated but has not passed all the exams in his study plan."))
+    if(!all(!is.na(GRADES[IDX, TODO[IDX,]])) & OUTCOME[IDX]==1) if(VERBOSE)warning(paste0("Student at row ", IDX, " (ID:", LABS_OBS[IDX], ") is coded as graduated but has not passed all the exams in his study plan."))
   })
   tmp <- sapply(1:n_obs, function(IDX) {
-    if(all(!is.na(GRADES[IDX, TODO[IDX,]])) & (OUTCOME[IDX]!=1 & OUTCOME[IDX]!=0)) warning(paste0("Student at row ", IDX, "(ID:", LABS_OBS[IDX], ") passed all the exams in his study plan but has outcome ", OUTCOME[IDX], "."))
+    if(all(!is.na(GRADES[IDX, TODO[IDX,]])) & (OUTCOME[IDX]!=1 & OUTCOME[IDX]!=0)) if(VERBOSE)warning(paste0("Student at row ", IDX, "(ID:", LABS_OBS[IDX], ") passed all the exams in his study plan but has outcome ", OUTCOME[IDX], "."))
   })
 
 
@@ -147,15 +161,16 @@ check_data <- function(GRADES, TIMES, TODO, OUTCOME, X, FIRST_YEAR, LAST_YEAR, L
   return(list(
     "data_dims"      = list(n_obs=n_obs, n_exams=n_exams, n_grades=n_grades, n_cov=n_cov, yb=yb),
     "par_dims"       = list(grtcm=dim_grtcm, lat=dim_lat, cr=dim_cr),
-    "labs"           = list(obs=LABS_OBS, exams=LABS_EXAMS, grades=LABS_GRADES),
-    "todoMat"        = TODO,
-    "gradesMat"      = GRADES,
-    "timeMat"        = TIMES,
-    "outcome"        = OUTCOME,
-    "first_year"     = FIRST_YEAR,
-    "last_year"      = LAST_YEAR,
-    "yle"            = LAST_EXAM_YEAR,
-    "X"              = X
+    "labs"           = list(obs=LABS_OBS, exams=LABS_EXAMS, grades=LABS_GRADES, cov=LABS_COV),
+    "todoMat"        = TODO[SUBSET,],
+    "gradesMat"      = GRADES[SUBSET,],
+    "timeMat"        = TIMES[SUBSET,],
+    "outcome"        = OUTCOME[SUBSET],
+    "first_year"     = FIRST_YEAR[SUBSET],
+    "last_year"      = LAST_YEAR[SUBSET],
+    "yle"            = LAST_EXAM_YEAR[SUBSET],
+    "max_time"       = MAX_TIME[SUBSET],
+    "X"              = as.matrix(X[SUBSET,], length(SUBSET), n_cov)
   ))
 
 

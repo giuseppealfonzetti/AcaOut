@@ -4,7 +4,13 @@
 \alias{compute_stderr}
 \title{Compute standard errors from GRTCM fit}
 \usage{
-compute_stderr(FIT, NUMDER = FALSE, TIDY = TRUE, GRID = NULL, WEIGHTS = NULL)
+compute_stderr(
+  FIT,
+  METHOD = c("sample", "num", "bfgs"),
+  TIDY = TRUE,
+  GRID = NULL,
+  WEIGHTS = NULL
+)
 }
 \arguments{
 \item{FIT}{Output from \link{fit_EM} or \link{fit_BFGS}}

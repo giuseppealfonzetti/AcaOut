@@ -21,22 +21,22 @@ get_loglik <- function(FIT, GRID=NULL, WEIGHTS=NULL, INIT=FALSE){
   }
 
   out <- cpp_GQ(
-    THETA = x,
+    THETA = FIT$fit$par,
     EXAMS_GRADES = FIT$data$gradesMat,
     EXAMS_DAYS = FIT$data$timeMat,
     EXAMS_SET = FIT$data$todoMat,
     EXAMS_OBSFLAG = !is.na(FIT$data$timeMat),
     COVARIATES = as.matrix(FIT$data$X),
-    MAX_DAY = FIT$data$fulldata$max_time,
+    MAX_DAY = FIT$data$max_time,
     OUTCOME = FIT$data$outcome,
     YEAR_FIRST = FIT$data$first_year,
     YEAR_LAST = FIT$data$last_year,
     YEAR_LAST_EXAM = FIT$data$yle,
-    YB = FIT$data$yb,
+    YB = FIT$data$data_dims$yb,
     GRID =  GRID,
     WEIGHTS =  WEIGHTS,
-    N_GRADES = FIT$data$n_grades,
-    N_EXAMS = FIT$data$n_exams,
+    N_GRADES = FIT$data$data_dims$n_grades,
+    N_EXAMS = FIT$data$data_dims$n_exams,
     GRFLAG = FALSE,
     LATPARFLAG = TRUE,
     MOD=FIT$mod

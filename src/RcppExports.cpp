@@ -153,8 +153,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_GQ
-Rcpp::List cpp_GQ(Eigen::VectorXd THETA, Eigen::MatrixXd EXAMS_GRADES, Eigen::MatrixXd EXAMS_DAYS, Eigen::MatrixXd EXAMS_SET, Eigen::MatrixXd EXAMS_OBSFLAG, Eigen::MatrixXd COVARIATES, Eigen::VectorXd MAX_DAY, Eigen::VectorXd OUTCOME, Eigen::VectorXd YEAR_FIRST, Eigen::VectorXd YEAR_LAST, Eigen::VectorXd YEAR_LAST_EXAM, Eigen::MatrixXd GRID, Eigen::VectorXd WEIGHTS, const int N_GRADES, const int N_EXAMS, const int YB, const std::string MOD, const bool GRFLAG, const bool LATPARFLAG);
-RcppExport SEXP _crirt_cpp_GQ(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP COVARIATESSEXP, SEXP MAX_DAYSEXP, SEXP OUTCOMESEXP, SEXP YEAR_FIRSTSEXP, SEXP YEAR_LASTSEXP, SEXP YEAR_LAST_EXAMSEXP, SEXP GRIDSEXP, SEXP WEIGHTSSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP YBSEXP, SEXP MODSEXP, SEXP GRFLAGSEXP, SEXP LATPARFLAGSEXP) {
+Rcpp::List cpp_GQ(Eigen::VectorXd THETA, Eigen::MatrixXd EXAMS_GRADES, Eigen::MatrixXd EXAMS_DAYS, Eigen::MatrixXd EXAMS_SET, Eigen::MatrixXd EXAMS_OBSFLAG, Eigen::MatrixXd COVARIATES, Eigen::VectorXd MAX_DAY, Eigen::VectorXd OUTCOME, Eigen::VectorXd YEAR_FIRST, Eigen::VectorXd YEAR_LAST, Eigen::VectorXd YEAR_LAST_EXAM, Eigen::MatrixXd GRID, Eigen::VectorXd WEIGHTS, const int N_GRADES, const int N_EXAMS, const int YB, const std::string MOD, const bool GRFLAG, const bool LATPARFLAG, const bool HFLAG);
+RcppExport SEXP _crirt_cpp_GQ(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP COVARIATESSEXP, SEXP MAX_DAYSEXP, SEXP OUTCOMESEXP, SEXP YEAR_FIRSTSEXP, SEXP YEAR_LASTSEXP, SEXP YEAR_LAST_EXAMSEXP, SEXP GRIDSEXP, SEXP WEIGHTSSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP YBSEXP, SEXP MODSEXP, SEXP GRFLAGSEXP, SEXP LATPARFLAGSEXP, SEXP HFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -177,7 +177,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type MOD(MODSEXP);
     Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type LATPARFLAG(LATPARFLAGSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_GQ(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, OUTCOME, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, N_GRADES, N_EXAMS, YB, MOD, GRFLAG, LATPARFLAG));
+    Rcpp::traits::input_parameter< const bool >::type HFLAG(HFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_GQ(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, OUTCOME, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, N_GRADES, N_EXAMS, YB, MOD, GRFLAG, LATPARFLAG, HFLAG));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -450,7 +451,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_crirt_internal_lat", (DL_FUNC) &_crirt_internal_lat, 4},
     {"_crirt_CCR", (DL_FUNC) &_crirt_CCR, 9},
     {"_crirt_cpp_EM", (DL_FUNC) &_crirt_cpp_EM, 21},
-    {"_crirt_cpp_GQ", (DL_FUNC) &_crirt_cpp_GQ, 19},
+    {"_crirt_cpp_GQ", (DL_FUNC) &_crirt_cpp_GQ, 20},
     {"_crirt_cpp_pGreaterGrades", (DL_FUNC) &_crirt_cpp_pGreaterGrades, 9},
     {"_crirt_cpp_pGrade", (DL_FUNC) &_crirt_cpp_pGrade, 9},
     {"_crirt_cpp_pTimeExam", (DL_FUNC) &_crirt_cpp_pTimeExam, 11},

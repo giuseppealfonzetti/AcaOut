@@ -18,7 +18,7 @@ compute_map <- function(FIT, MATSTART=NULL, TIDY = TRUE){
 
 
   if(is.null(MATSTART)){
-    MATSTART <- matrix(0, length(FIT$data$obs_ids), 2)
+    MATSTART <- matrix(0, FIT$data$data_dims$n_obs, 2)
   }
 
   if(FIT$mod=="full"){
@@ -34,10 +34,10 @@ compute_map <- function(FIT, MATSTART=NULL, TIDY = TRUE){
         YEAR_LAST=FIT$data$last_year[ID],
         YEAR_LAST_EXAM=FIT$data$yle[ID],
         COVARIATES=FIT$data$X[ID,],
-        YB=FIT$data$yb,
-        MAX_DAY = FIT$data$fulldata$max_time[ID],
-        N_GRADES = FIT$data$n_grades,
-        N_EXAMS = FIT$data$n_exams,
+        YB=FIT$data$data_dims$yb,
+        MAX_DAY = FIT$data$max_time[ID],
+        N_GRADES = FIT$data$data_dims$n_grades,
+        N_EXAMS = FIT$data$data_dims$n_exams,
         ABILITY = LAT[1],
         SPEED = LAT[2])
     }
@@ -50,9 +50,9 @@ compute_map <- function(FIT, MATSTART=NULL, TIDY = TRUE){
         EXAMS_SET = FIT$data$todoMat[ID,],
         EXAMS_OBSFLAG = !is.na(FIT$data$timeMat[ID,]),
         COVARIATES = FIT$data$X[ID,],
-        MAX_DAY = FIT$data$fulldata$max_time[ID],
-        N_GRADES = FIT$data$n_grades,
-        N_EXAMS = FIT$data$n_exams,
+        MAX_DAY = FIT$data$max_time[ID],
+        N_GRADES = FIT$data$data_dims$n_grades,
+        N_EXAMS = FIT$data$data_dims$n_exams,
         ABILITY = LAT[1],
         SPEED = LAT[2])
     }
@@ -62,11 +62,11 @@ compute_map <- function(FIT, MATSTART=NULL, TIDY = TRUE){
 
 
   mat <- Reduce(rbind,
-                lapply(1:nrow(FIT$data$gradesMat),
+                lapply(1:FIT$data$data_dims$n_obs,
                        function(ID){
                          fit <- ucminf::ucminf(par = as.numeric(MATSTART[ID,]), fn = ID_COMPLETENLL, ID = ID)
                          as.numeric(fit$par)}))
-  rownames(mat) <- FIT$data$obs_ids
+  rownames(mat) <- FIT$data$labs$obs
   colnames(mat) <- c("ability", "speed")
   if(TIDY){
     mat <- as_tibble(mat, rownames = "subject_id")

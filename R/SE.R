@@ -7,7 +7,7 @@
 #' @importFrom dplyr mutate
 #'
 #' @export
-compute_stderr <- function(FIT, METHOD=c("sample", "num", "bfgs"), TIDY = TRUE, GRID=NULL, WEIGHTS=NULL){
+compute_stderr <- function(FIT, METHOD=c("sample", "num", "bfgs"), TIDY = TRUE, GRID=NULL, WEIGHTS=NULL, VERBOSE=FALSE){
 
   if(!(FIT$mod%in%c("full", "grtc", "ccr"))){
     stop("Model not available. Provide fit object for `full` , `grtc` or `ccr` models.")
@@ -20,7 +20,7 @@ compute_stderr <- function(FIT, METHOD=c("sample", "num", "bfgs"), TIDY = TRUE, 
   if(is.null(GRID)) internal_grid <- FIT$grid
   if(is.null(WEIGHTS)) internal_weights <- FIT$weights
 
-  message(paste0("Computing standard errors of ", FIT$mod, " model."))
+  if(VERBOSE)message(paste0("Computing standard errors of ", FIT$mod, " model."))
 
 
 

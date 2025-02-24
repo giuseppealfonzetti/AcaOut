@@ -113,7 +113,7 @@ Compute the asymptotic standard errors
 
 ```{r fullSE}
 tictoc::tic()
-fullSE <- compute_stderr(fullBFGS, NUMDER = TRUE, TIDY = TRUE)
+fullSE <- compute_stderr(fullBFGS, NUMDER = FALSE, TIDY = TRUE)
 tictoc::toc()
 saveRDS(fullSE, file = "fullSE.rds")
 

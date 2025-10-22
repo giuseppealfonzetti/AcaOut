@@ -1,48 +1,52 @@
-
-#' Compute Marginal Loglik
+#' MAP GRTCM
+#'
+#' Compute MAP scores for Graded Response Time Censored Model
 #'
 #' @param FIT Output from [fit_EM] or [fit_BFGS]
-#' @param GRID Grid of quadrature points to be used.
-#' @param WEIGHTS Weights for quadrature points.
-#' @param INIT If TRUE, it evaluates the marginal log likelihood at the initial parameter values
+#' @param TIDY Return tidy parameter table
+#' @param MATSTART Starting values for the latent scores
 #'
+#' @importFrom dplyr as_tibble
 #' @export
-get_loglik <- function(FIT, GRID=NULL, WEIGHTS=NULL, INIT=FALSE){
-  if(is.null(GRID)) GRID <- FIT$grid
-  if(is.null(WEIGHTS)) WEIGHTS <- FIT$weights
+compute_eap <- function(FIT, TIDY = TRUE){
 
   if(!(FIT$mod%in%c("full", "grtc"))){
     stop("Model not available. Provide fit object for `full` or `grtc` models.")
   }
 
-  pars <- FIT$fit$par
-  if(INIT){
-    pars <- FIT$start_par
-  }
+  message(paste0("Computing EAP latent score estimates of ", FIT$mod, " model."))
 
-  out <- cpp_GQ(
+
+  mat <- cpp_EAP(
     THETA = FIT$fit$par,
     EXAMS_GRADES = FIT$data$gradesMat,
     EXAMS_DAYS = FIT$data$timeMat,
     EXAMS_SET = FIT$data$todoMat,
     EXAMS_OBSFLAG = !is.na(FIT$data$timeMat),
-    COVARIATES = as.matrix(FIT$data$X),
     MAX_DAY = FIT$data$max_time,
     OUTCOME = FIT$data$outcome,
+    EXT_COVARIATES = as.matrix(FIT$data$X) ,
     YEAR_FIRST = FIT$data$first_year,
     YEAR_LAST = FIT$data$last_year,
     YEAR_LAST_EXAM = FIT$data$yle,
+    GRID = FIT$grid,
+    WEIGHTS = FIT$weights,
     YB = FIT$data$data_dims$yb,
-    GRID =  GRID,
-    WEIGHTS =  WEIGHTS,
     N_GRADES = FIT$data$data_dims$n_grades,
     N_EXAMS = FIT$data$data_dims$n_exams,
-    GRFLAG = FALSE,
-    LATPARFLAG = TRUE,
-    MOD=FIT$mod
-  )$ll
+    MOD = FIT$mod,
+    VERBOSE=FALSE
+    )$EAP
 
-  return(out)
+
+
+
+
+  rownames(mat) <- FIT$data$labs$obs
+  colnames(mat) <- c("ability", "speed")
+  if(TIDY){
+    mat <- as_tibble(mat, rownames = "subject_id")
+  }
+
+  return(mat)
 }
-
-

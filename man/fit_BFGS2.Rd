@@ -2,7 +2,32 @@
 % Please edit documentation in R/BFGS.R
 \name{fit_BFGS2}
 \alias{fit_BFGS2}
-\title{Fit CRGRTCM}
+\title{#' Fit CRGRTCM
+#'
+#' Fit Competing Risk Graded Response Time Censored Model
+#'
+#' @param DATA Dataset in long form
+#' @param GRADE_COL Label of the column where to find the grades
+#' @param EXAM_COL Label of the column where to find exams ids
+#' @param STUDID_COL Label of the column where to find students ids.
+#' @param TIME_COL Label of the column where to find exams times.
+#' @param MAXTIME_COL Label of the column where to find the maximum time observed for each student.
+#' @param GRID Grid of quadrature points to be used.
+#' @param WEIGHTS Weights for quadrature points
+#' @param THETA_START Optional starting parameter vector
+#' @param ... additional arguments to be passed to \code{\link[ucminf:ucminf]{ucminf::ucminf()}}
+#'
+#' @importFrom stats sd
+#' @export
+fit_BFGS <- function(DATA,
+GRADE_COL = "xcat",
+EXAM_COL = "itemID",
+STUDID_COL = "subjectID",
+TIME_COL = "time",
+MAXTIME_COL = "maxTime",
+GRID, WEIGHTS, THETA_START = NULL,
+MOD,
+...){}
 \usage{
 fit_BFGS2(DATA, GRID, WEIGHTS, THETA_START = NULL, MOD, ...)
 }
@@ -28,5 +53,10 @@ fit_BFGS2(DATA, GRID, WEIGHTS, THETA_START = NULL, MOD, ...)
 \item{MAXTIME_COL}{Label of the column where to find the maximum time observed for each student.}
 }
 \description{
-Fit Competing Risk Graded Response Time Censored Model
+if(!(MOD\%in\%c("full", "grtc"))){
+stop("Select MOD among \code{full} or \code{grtc}.")
+}
+}
+\details{
+
 }

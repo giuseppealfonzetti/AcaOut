@@ -1,8 +1,8 @@
 #' @export
 fit_CCR <- function(DATA, PAR_START, LATMAT, ...){
 
-  dim_irt <- DATA$n_exams * (DATA$n_grades+3)
-  dim_lat <- 2+2*ncol(DATA$X)
+  dim_irt <- DATA$par_dims$grtcm
+  dim_lat <-  DATA$par_dims$lat
 
   CCRfun <- function(PAR, GRFLAG){
     obj <- CCR(
@@ -13,12 +13,12 @@ fit_CCR <- function(DATA, PAR_START, LATMAT, ...){
       YEAR_LAST=DATA$last_year,
       YEAR_LAST_EXAM=DATA$yle,
       LATMAT=as.matrix(LATMAT),
-      YB=DATA$yb,
+      YB=DATA$data_dims$yb,
       GRFLAG = GRFLAG
     )
 
     if(GRFLAG){
-      return(-obj$gr[-c(1:(dim_irt+dim_lat))])
+      return(-obj$gr[-c(1:(DATA$par_dims$grtcm+DATA$par_dims$lat))])
     }else{
       return(-obj$ll)
     }

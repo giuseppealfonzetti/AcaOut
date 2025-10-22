@@ -9,7 +9,8 @@ compute_stderr(
   METHOD = c("sample", "num", "bfgs"),
   TIDY = TRUE,
   GRID = NULL,
-  WEIGHTS = NULL
+  WEIGHTS = NULL,
+  VERBOSE = FALSE
 )
 }
 \arguments{

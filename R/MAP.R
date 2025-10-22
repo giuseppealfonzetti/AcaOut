@@ -66,6 +66,7 @@ compute_map <- function(FIT, MATSTART=NULL, TIDY = TRUE){
                        function(ID){
                          fit <- ucminf::ucminf(par = as.numeric(MATSTART[ID,]), fn = ID_COMPLETENLL, ID = ID)
                          as.numeric(fit$par)}))
+  mat[,1] <- mat[,1]
   rownames(mat) <- FIT$data$labs$obs
   colnames(mat) <- c("ability", "speed")
   if(TIDY){

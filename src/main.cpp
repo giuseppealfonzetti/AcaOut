@@ -83,8 +83,8 @@ Rcpp::List cpp_EM(
   int convergence = 0;
   for(int iter=0; iter < MAX_ITER; iter++){
     Rcpp::checkUserInterrupt();
-    Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
-    Eigen::MatrixXd grid = GRID * L.transpose();
+    // Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
+    // Eigen::MatrixXd grid = GRID * L.transpose();
 
     if(VERBOSE)Rcpp::Rcout << "Iter " << iter << ":\n";
     if(VERBOSE)Rcpp::Rcout << "- E-STEP...";
@@ -99,7 +99,7 @@ Rcpp::List cpp_EM(
                                    YEAR_FIRST,
                                    YEAR_LAST,
                                    YEAR_LAST_EXAM,
-                                   grid,
+                                   GRID,
                                    WEIGHTS,
                                    YB,
                                    N_GRADES,
@@ -124,8 +124,9 @@ Rcpp::List cpp_EM(
         MOD
     );
 
-    eclass.update_quadrature(grid, Ew);
+    eclass.update_quadrature(GRID, Ew);
 
+    MCOUNT = 0;
     int status = optim_lbfgs(eclass, theta, enjll, M_MAX_ITER);
     double tol_check = (path_enjll.back() - enjll) / path_enjll.back();
 
@@ -209,3 +210,117 @@ Rcpp::List cpp_GQ(
 
   return output;
 }
+
+
+
+//' @export
+ // [[Rcpp::export]]
+ Rcpp::List cpp_EAP(
+     Eigen::VectorXd THETA,
+     Eigen::MatrixXd EXAMS_GRADES,
+     Eigen::MatrixXd EXAMS_DAYS,
+     Eigen::MatrixXd EXAMS_SET,
+     Eigen::MatrixXd EXAMS_OBSFLAG,
+     Eigen::VectorXd MAX_DAY,
+     Eigen::VectorXd OUTCOME,
+     Eigen::MatrixXd EXT_COVARIATES,
+     Eigen::VectorXd YEAR_FIRST,
+     Eigen::VectorXd YEAR_LAST,
+     Eigen::VectorXd YEAR_LAST_EXAM,
+     Eigen::MatrixXd GRID,
+     Eigen::VectorXd WEIGHTS,
+     const int YB,
+     const int N_GRADES,
+     const int N_EXAMS,
+     const std::string MOD,
+     const bool VERBOSE
+ ){
+   double enjll = 0;
+
+   const int n = EXAMS_GRADES.rows();
+   const int nq = GRID.rows();
+   const int dim_irt = N_EXAMS*(N_GRADES+3);
+   const int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
+   const int n_cov = EXT_COVARIATES.cols();
+
+
+  Eigen::MatrixXd Ew = EM::Estep(THETA,
+                                 EXAMS_GRADES,
+                                 EXAMS_DAYS,
+                                 EXAMS_SET,
+                                 EXAMS_OBSFLAG,
+                                 MAX_DAY,
+                                 OUTCOME,
+                                 EXT_COVARIATES,
+                                 YEAR_FIRST,
+                                 YEAR_LAST,
+                                 YEAR_LAST_EXAM,
+                                 GRID,
+                                 WEIGHTS,
+                                 YB,
+                                 N_GRADES,
+                                 N_EXAMS,
+                                 MOD);
+
+
+  Eigen::MatrixXd grid=GRID;
+  Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+  grid = grid * L.transpose();
+
+  Eigen::MatrixXd eap=Eigen::MatrixXd::Zero(n,2);
+  for(unsigned int i = 0; i < n; i++){
+    Rcpp::checkUserInterrupt();
+
+    double mu_i_ability = 0;
+    double mu_i_speed = 0;
+    mu_i_ability = EXT_COVARIATES.row(i)*THETA.segment(dim_irt+2, n_cov);
+    mu_i_speed = EXT_COVARIATES.row(i)*THETA.segment(dim_irt+2+n_cov, n_cov);
+
+    // Eigen::VectorXd todo = EXAMS_SET.row(i);
+    // // Initialize conditional IRT model
+    // grtcm::GRTC grtcm(THETA,
+    //                   EXAMS_GRADES.row(i),
+    //                   EXAMS_DAYS.row(i),
+    //                   EXAMS_SET.row(i),
+    //                   EXAMS_OBSFLAG.row(i),
+    //                   EXT_COVARIATES.row(i),
+    //                   MAX_DAY(i),
+    //                   N_GRADES,
+    //                   N_EXAMS,
+    //                   false);
+    //
+    // // Initialize conditional CR model
+    // cr::CCR ccrm(THETA,
+    //              OUTCOME(i),
+    //              EXT_COVARIATES.row(i),
+    //              YB,
+    //              YEAR_FIRST(i),
+    //              YEAR_LAST(i),
+    //              YEAR_LAST_EXAM(i),
+    //              false);
+    //
+
+    for(unsigned int point = 0; point < nq; point++){
+
+      Eigen::VectorXd lat = grid.row(point);
+      lat(0) +=mu_i_ability; lat(1)+=mu_i_speed;
+      eap.row(i) += lat*Ew(i, point);
+
+    }
+  }
+
+
+
+
+
+
+
+
+   Rcpp::List output =
+     Rcpp::List::create(
+       Rcpp::Named("Ew") = Ew,
+       Rcpp::Named("EAP")=eap
+     );
+
+   return output;
+ }

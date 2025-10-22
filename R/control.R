@@ -52,7 +52,7 @@ check_outcome <- function(VEC){
   stopifnot(is.vector(VEC))
   stopifnot(all(is.finite(VEC)))
   if(!all(VEC>=0 & VEC<=3)) stop("Outcomes not coded correctly. Use 0 for enrollment, 1 for graduation, 2 for dropout, 3 for transfer.")
-  if(dim(table(VEC))!=4) stop("One or more outcomes have not been observed on the whole dataset.")
+  if(dim(table(VEC))<3) stop("One or more outcomes have not been observed on the whole dataset.")
   VEC[is.finite(VEC)] <- as.integer(VEC[is.finite(VEC)])
   return(VEC)
 }

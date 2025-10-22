@@ -106,7 +106,9 @@ namespace cr
 
     // Remain enrolled from YEAR_LAST_EXAM to YEAR_LAST
     for(unsigned int year = YEAR_LAST_EXAM; year <= YEAR_LAST; year++){
-      logout += log1mexp(-hazard(1, year - YEAR_LAST_EXAM + 1, THETA, ABILITY, SPEED, YB, true));
+      // logout += log1mexp(-hazard(1, year - YEAR_LAST_EXAM + 1, THETA, ABILITY, SPEED, YB, true));
+      logout += log1mexp(-hazard(1, year, THETA, ABILITY, SPEED, YB, true));
+
     }
 
   }
@@ -158,7 +160,9 @@ namespace cr
 
       //The student remain enrolled until YEAR_LAST-1 and the experience OUTCOME
       logout  = survival(YEAR_FIRST, YEAR_LAST-1, THETA, ABILITY, SPEED, YB, YEAR_LAST_EXAM, true);
-      logout += hazard(1, YEAR_LAST-YEAR_LAST_EXAM+1, THETA, ABILITY, SPEED, YB, true);
+      // logout += hazard(1, YEAR_LAST-YEAR_LAST_EXAM+1, THETA, ABILITY, SPEED, YB, true);
+      logout += hazard(1, YEAR_LAST, THETA, ABILITY, SPEED, YB, true);
+
     }
 
     if(LOGFLAG){
@@ -333,7 +337,9 @@ namespace cr::grad{
      }
      // Remain enrolled from YEAR_LAST_EXAM to YEAR_LAST
      for(unsigned int year = YEAR_LAST_EXAM; year <= YEAR_LAST; year++){
-       double logouty = log1mexp(-hazard(1, year - YEAR_LAST_EXAM + 1, THETA, ABILITY, SPEED, YB, true));
+       // double logouty = log1mexp(-hazard(1, year - YEAR_LAST_EXAM + 1, THETA, ABILITY, SPEED, YB, true));
+       double logouty = log1mexp(-hazard(1, year, THETA, ABILITY, SPEED, YB, true));
+
        logout += logouty;
        grl(dim_irt+dim_lat)+=exp(logouty)-1;
      }

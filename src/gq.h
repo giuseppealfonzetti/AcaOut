@@ -91,8 +91,8 @@ namespace gq{
 
         if(MOD=="full"){
 
-          double irt_cll = grtc.ll(GRID(point, 0)+mu_i_ability, GRID(point, 1)+mu_i_speed);
-          double cr_cll  = ccrm.ll( GRID(point, 0)+mu_i_ability, GRID(point, 1)+mu_i_speed);
+          double irt_cll = grtc.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
+          double cr_cll  = ccrm.ll( grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
 
           f(point) = exp(irt_cll+cr_cll);
           llMat(i,point) = irt_cll+cr_cll;
@@ -105,7 +105,7 @@ namespace gq{
 
         if(GRFLAG){
           if(MOD=="full"){
-            Eigen::VectorXd gr_point = grtc.grll(GRID(point, 0)+mu_i_ability, GRID(point, 1)+mu_i_speed)+ccrm.grll(GRID(point, 0)+mu_i_ability, GRID(point, 1)+mu_i_speed);
+            Eigen::VectorXd gr_point = grtc.grll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed)+ccrm.grll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
             gr_point *= f(point);
             gr.col(point) = gr_point;
           }else{
@@ -128,6 +128,8 @@ namespace gq{
         }
       }
     }
+
+    Rcpp::Rcout << "\r-NLL:"<<-ll/n;
 
     Rcpp::List output =
       Rcpp::List::create(

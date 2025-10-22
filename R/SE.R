@@ -25,12 +25,13 @@ compute_stderr <- function(FIT, METHOD=c("sample", "num", "bfgs"), TIDY = TRUE, 
 
 
   dim_irt <- FIT$data$par_dims$grtcm
+  dim_lat <- FIT$data$par_dims$lat
   dim_cr <- FIT$data$par_dims$cr
 
   if(FIT$mod=="ccr"){
-    FIT$fit$par <- c(rep(NA, dim_irt+2), FIT$fit$par)
+    FIT$fit$par <- c(rep(NA, dim_irt+dim_lat), FIT$fit$par)
   }else if(FIT$mod=="grtc"){
-    FIT$fit$par <- c(FIT$fit$par, rep(NA, dim_cr))
+    FIT$fit$par <- c(FIT$fit$par[1:(dim_irt+dim_lat)], rep(NA, dim_cr))
   }
 
   reparJacob <- numDeriv::jacobian(func = parVec2Repar, x = FIT$fit$par,

@@ -66,27 +66,6 @@ CRGRTCM_complete_obs <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_OBSFLAG,
     .Call(`_crirt_CRGRTCM_complete_obs`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_OBSFLAG, EXAMS_SET, OUTCOME, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, COVARIATES, MAX_DAY, YB, N_GRADES, N_EXAMS, ABILITY, SPEED)
 }
 
-#' Latent distribution
-#'
-#' Provides a wrapper for the cpp class `LAT_DISTR`, which computes
-#' log density and gradient of the joint distribution of ability and speed.
-#'
-#' @param ABILITY ability value.
-#' @param SPEED speed value.
-#' @param PARS Two elements, used as (`L[2,1]`, `L[2,2]`), where L is the lower triangular Cholesky of the latent covariance matrix.
-#' @param GRFLAG `TRUE` to compute the gradient.
-#'
-#' @return It returns a list with:
-#' \itemize{
-#'   \item ll - The log-likelihood of the latent distribution.
-#'   \item gr - The gradient of the log-likelihood.
-#' }
-#'
-#' @export
-internal_lat <- function(ABILITY, SPEED, PARS, GRFLAG = TRUE) {
-    .Call(`_crirt_internal_lat`, ABILITY, SPEED, PARS, GRFLAG)
-}
-
 #' @export
 CCR <- function(THETA, OUTCOME, COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, LATMAT, YB, GRFLAG) {
     .Call(`_crirt_CCR`, THETA, OUTCOME, COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, LATMAT, YB, GRFLAG)
@@ -100,6 +79,11 @@ cpp_EM <- function(THETA_START, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFL
 #' @export
 cpp_GQ <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, OUTCOME, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, N_GRADES, N_EXAMS, YB, MOD, GRFLAG = TRUE, LATPARFLAG = TRUE, HFLAG = FALSE) {
     .Call(`_crirt_cpp_GQ`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, OUTCOME, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, N_GRADES, N_EXAMS, YB, MOD, GRFLAG, LATPARFLAG, HFLAG)
+}
+
+#' @export
+cpp_EAP <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, OUTCOME, EXT_COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, YB, N_GRADES, N_EXAMS, MOD, VERBOSE) {
+    .Call(`_crirt_cpp_EAP`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, OUTCOME, EXT_COVARIATES, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, GRID, WEIGHTS, YB, N_GRADES, N_EXAMS, MOD, VERBOSE)
 }
 
 #' @export

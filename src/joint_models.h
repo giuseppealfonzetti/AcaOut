@@ -44,7 +44,7 @@ double GRTCM_complete_obs(
 
   // Initialize conditional IRT model
   grtcm::GRTC obj(THETA, EXAMS_GRADES, EXAMS_DAYS,
-                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
+                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, true);
 
   double cll = obj.cll(ABILITY, SPEED);
 
@@ -76,10 +76,10 @@ double CRGRTCM_complete_obs(
 
   // Initialize conditional IRT model
   grtcm::GRTC grtc(THETA, EXAMS_GRADES, EXAMS_DAYS,
-                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, false);
+                  EXAMS_SET, EXAMS_OBSFLAG, COVARIATES, MAX_DAY, N_GRADES, N_EXAMS, true);
 
   // Initialize conditional CR model
-  cr::CCR ccr(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, false);
+  cr::CCR ccr(THETA, OUTCOME, COVARIATES, YB, YEAR_FIRST, YEAR_LAST, YEAR_LAST_EXAM, true);
 
   double cll = grtc.cll(ABILITY, SPEED) + ccr.ll(ABILITY, SPEED);
 

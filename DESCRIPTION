@@ -1,12 +1,10 @@
-Package: crirt
+Package: AcaOut
 Title: Flexible CR-IRT career model
 Version: 0.0.0.9000
 Authors@R: 
     c(
     person("Giuseppe", "Alfonzetti", , "giuseppe.alfonzetti@uniud.it", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6118-6553")),
-    person("Michela", "Battauz", , "michela.battauz@uniud.it", role = c("aut")),
-    person("Ruggero", "Bellio", , "ruggero.bellio@uniud.it", role = c("aut"))
+           comment = c(ORCID = "0000-0002-6118-6553"))
     )
 Description: Analyse students' careers with a flexible Competing Risk Item Response Theory model.
 License: MIT + file LICENSE
@@ -32,5 +30,5 @@ Imports:
     ucminf,
     optimx,
     MASS
-URL: https://github.com/giuseppealfonzetti/crirt
-BugReports: https://github.com/giuseppealfonzetti/crirt/issues
+URL: https://github.com/giuseppealfonzetti/AcaOut
+BugReports: https://github.com/giuseppealfonzetti/AcaOut/issues

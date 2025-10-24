@@ -2,6 +2,7 @@
 #define EIGEN_PERMANENTLY_DISABLE_STUPID_WARNINGS
 #define EIGEN_DONT_PARALLELIZE
 #include <RcppEigen.h>
+#include <cmath>
 
 #include "extractParams.h"
 #include "latent.h"
@@ -263,8 +264,10 @@ Rcpp::List cpp_GQ(
                                  MOD);
 
 
-  Eigen::MatrixXd grid=GRID;
-  Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+  Eigen::MatrixXd grid = GRID;
+  const double l21 = THETA(dim_irt);
+  const double l22 = std::exp(THETA(dim_irt+1));
+  Eigen::MatrixXd L{{1,0},{l21, l22}};
   grid = grid * L.transpose();
 
   Eigen::MatrixXd eap=Eigen::MatrixXd::Zero(n,2);

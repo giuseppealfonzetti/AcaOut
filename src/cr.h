@@ -1,6 +1,7 @@
 #ifndef cr_H
 #define cr_H
 #include "extractParams.h"
+#include <cmath>
 
 
 namespace cr
@@ -203,6 +204,8 @@ namespace cr::grad{
     Eigen::VectorXd latent(2); latent << ABILITY, SPEED;
     Eigen::VectorXd theta_cr  = THETA.tail(dim_cr);
     Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
+    const double l21 = THETA(dim_irt);
+    const double l22 = std::exp(THETA(dim_irt+1));
     double lpr;
     if((OUTCOME == 2 | OUTCOME == 3) && YEAR > YB) Rcpp::stop("`YEAR` larger than `YB`");
 
@@ -228,7 +231,7 @@ namespace cr::grad{
 
        if(LATPARFLAG){
           const double d1 = ABILITY-(THETA.segment(dim_irt+2, n_cov).transpose()*COVARIATES);
-          const double d2 = (SPEED -THETA(dim_irt)*d1-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/THETA(dim_irt+1);
+          const double d2 = (SPEED - l21*d1-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/l22;
 
           // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomp of lat covariance matrix)
           gr(dim_irt) = tmp*beta_d(1)*d1+nprod*beta_t(1)*d1;
@@ -252,7 +255,7 @@ namespace cr::grad{
 
        if(LATPARFLAG){
           const double d1 = ABILITY-(THETA.segment(dim_irt+2, n_cov).transpose()*COVARIATES);
-          const double d2 = (SPEED -THETA(dim_irt)*d1-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/THETA(dim_irt+1);
+          const double d2 = (SPEED - l21*d1-(THETA.segment(dim_irt+2+n_cov, n_cov).transpose()*COVARIATES))/l22;
 
           // derivative wrt l1 (L(1,0) where L is the lower Cholesky decomp of lat covariance matrix)
           gr(dim_irt) = tmp*beta_t(1)*d1+nprod*beta_d(1)*d1;
@@ -276,6 +279,7 @@ namespace cr::grad{
    }
 
 
+    gr(dim_irt+1) *= l22;
     return gr;
  }
 

@@ -80,7 +80,7 @@ parVec2List <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB=5, LABS_EXAMS=NULL, 
                            LABS_GRADES = LABS_GRADES)
 
   # Latent parameters
-  L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
+  L <- matrix(c(1,THETA[dim_irt+1], 0, exp(THETA[dim_irt+2])),2,2)
   out[["lat_var"]] <- L %*% t(L)
 
   if(N_COV>0){
@@ -112,7 +112,7 @@ parList2Vec <- function(LIST){
   L <- t(chol(LIST[["lat_var"]]))
   B <- LIST[["lat_reg"]]
 
-  theta_lat <- c(L[2,1], L[2,2] )
+  theta_lat <- c(L[2,1], log(L[2,2]) )
   if(!is.null(B)) theta_lat <- c(theta_lat, as.numeric(t(B)))
 
   theta_cr <- c(LIST$cr$grad,as.numeric(LIST$cr$beta))
@@ -155,7 +155,7 @@ parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, L
   irtVec <- as.numeric(t(irtMat))
 
   # latent params
-  L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
+  L <- matrix(c(1,THETA[dim_irt+1], 0, exp(THETA[dim_irt+2])),2,2)
   S <- L %*% t(L)
   speed_sd <- sqrt(S[2,2])
   lat_cor <- S[2,1]/speed_sd

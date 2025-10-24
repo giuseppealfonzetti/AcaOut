@@ -8,6 +8,7 @@
 #include "latent.h"
 #include "GRTCM.h"
 #include "cr.h"
+#include <cmath>
 
 namespace gq{
   // Evaluate marginal loglikelihood and its gradient on a quadrature grid
@@ -44,9 +45,11 @@ namespace gq{
     Eigen::MatrixXd H    = Eigen::MatrixXd::Zero(THETA.size(),THETA.size());
 
 
-    Eigen::MatrixXd grid=GRID;
+    Eigen::MatrixXd grid = GRID;
     if(LATPARFLAG){
-      Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+      const double l21 = THETA(dim_irt);
+      const double l22 = std::exp(THETA(dim_irt+1));
+      Eigen::MatrixXd L{{1,0},{l21, l22}};
       grid = grid * L.transpose();
     }
 

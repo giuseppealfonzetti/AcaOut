@@ -6,6 +6,7 @@
 #include "extractParams.h"
 #include "latent.h"
 #include "cr.h"
+#include <cmath>
 #include "conditional_models.h"
 #include "em.h"
 #include "GRTCM.h"
@@ -376,7 +377,9 @@ Rcpp::List cpp_estep(
   const int m = EXT_COVARIATES.cols();
   const int dim_cr = 2*(YB+m+2)+1;
   const int dim_irt = THETA.size()-dim_cr-2;
-  Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+  const double l21 = THETA(dim_irt);
+  const double l22 = std::exp(THETA(dim_irt+1));
+  Eigen::MatrixXd L{{1,0},{l21, l22}};
   GRID = GRID * L.transpose();
 
   Eigen::MatrixXd Ew = EM::Estep(THETA,

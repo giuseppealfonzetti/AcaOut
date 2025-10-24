@@ -9,6 +9,8 @@
 #include "conditional_models.h"
 #include "GRTCM.h"
 #include <RcppNumerical.h>
+#include <cmath>
+#include <limits>
 
 // Define global variable used to count gradient evaluations in M-Step
 int MCOUNT;
@@ -43,9 +45,11 @@ namespace EM
 
     Eigen::MatrixXd Emat(n,nq);
 
-    Eigen::MatrixXd grid=GRID;
+    Eigen::MatrixXd grid = GRID;
     if(LATPARFLAG){
-      Eigen::MatrixXd L{{1,0},{THETA(dim_irt), THETA(dim_irt+1)}};
+      const double l21 = THETA(dim_irt);
+      const double l22 = std::exp(THETA(dim_irt+1));
+      Eigen::MatrixXd L{{1,0},{l21, l22}};
       grid = grid * L.transpose();
     }
 
@@ -80,6 +84,7 @@ namespace EM
                    YEAR_LAST_EXAM(i),
                    false);
 
+      Eigen::VectorXd logw = Eigen::VectorXd::Constant(nq, -std::numeric_limits<double>::infinity());
 
       for(unsigned int point = 0; point < nq; point++){
         double logd = grtc.ll(grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
@@ -88,10 +93,27 @@ namespace EM
           logd  += ccrm.ll( grid(point, 0)+mu_i_ability, grid(point, 1)+mu_i_speed);
         }
 
-        Emat(i, point) = exp(logd)*WEIGHTS(point);
+        logw(point) = logd + std::log(std::max(WEIGHTS(point), 1e-16));
       }
 
-      Emat.row(i) /= Emat.row(i).sum();
+      double max_logw = logw.maxCoeff();
+      if(!std::isfinite(max_logw)){
+        Emat.row(i).setConstant(1.0/static_cast<double>(nq));
+        continue;
+      }
+
+      double rowsum = 0.0;
+      for(unsigned int point = 0; point < nq; point++){
+        double val = std::exp(std::min(700.0, logw(point) - max_logw));
+        Emat(i, point) = val;
+        rowsum += val;
+      }
+
+      if(rowsum <= 0 || !std::isfinite(rowsum)){
+        Emat.row(i).setConstant(1.0/static_cast<double>(nq));
+      }else{
+        Emat.row(i) /= rowsum;
+      }
     }
     return Emat;
   }
@@ -199,8 +221,10 @@ namespace EM
       const int dim_irt = _n_exams*(_n_grades+3);
       const int n_cov = _ext_covariates.cols();
 
-      Eigen::MatrixXd grid=_grid;
-      Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
+      Eigen::MatrixXd grid = _grid;
+      const double l21 = theta(dim_irt);
+      const double l22 = std::exp(theta(dim_irt+1));
+      Eigen::MatrixXd L{{1,0},{l21, l22}};
       grid = grid * L.transpose();
 
       Eigen::VectorXd gr = Eigen::VectorXd::Zero(theta.size());
@@ -268,10 +292,6 @@ namespace EM
 }
 
 #endif
-
-
-
-
 
 
 

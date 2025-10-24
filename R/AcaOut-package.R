@@ -1,5 +1,5 @@
 ## usethis namespace: start
-#' @useDynLib crirt, .registration = TRUE
+#' @useDynLib AcaOut, .registration = TRUE
 ## usethis namespace: end
 NULL
 

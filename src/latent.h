@@ -1,6 +1,8 @@
 #ifndef latent_H
 #define latent_H
 
+// Standard constants
+#include <cmath>
 const double pi = 3.1415926535897;
 const double neglog2pi = -1.837877;
 
@@ -254,7 +256,9 @@ namespace latent{
   double LAT::ll(const double ABILITY, const double SPEED){
     double ll;
     Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
-    Eigen::MatrixXd L{{1,0},{theta_lat(0), theta_lat(1)}};
+    const double l21 = theta_lat(0);
+    const double l22 = std::exp(theta_lat(1));
+    Eigen::MatrixXd L{{1,0},{l21, l22}};
     Eigen::MatrixXd cov = L*L.transpose();
     double det = cov.determinant();
     Eigen::MatrixXd inv_cov = cov.inverse();
@@ -270,7 +274,9 @@ namespace latent{
   Eigen::VectorXd LAT::grll(const double ABILITY, const double SPEED){
     Eigen::VectorXd gr = Eigen::VectorXd::Zero(2+2*n_cov);
     Eigen::VectorXd lat(2); lat << ABILITY, SPEED;
-    Eigen::MatrixXd L{{1,0},{theta_lat(0), theta_lat(1)}};
+    const double l21 = theta_lat(0);
+    const double l22 = std::exp(theta_lat(1));
+    Eigen::MatrixXd L{{1,0},{l21, l22}};
     Eigen::MatrixXd B(2, n_cov);
     B.row(0) = theta_lat.segment(2, n_cov);
     B.row(1) = theta_lat.segment(2+n_cov, n_cov);
@@ -289,14 +295,12 @@ namespace latent{
     gr.segment(2, n_cov) = ((1+pow(L(1,0),2)/pow(L(1,1),2))*latc(0) - (L(1,0)/pow(L(1,1),2))*latc(1) ) *covariates;
     gr.segment(2+n_cov, n_cov) = ((1/pow(L(1,1),2))*(latc(1))- (L(1,0)/pow(L(1,1),2))*latc(0)) *covariates;
 
+    gr(1) *= l22;
     return(gr);
   }
 
 }
 #endif
-
-
-
 
 
 

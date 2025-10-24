@@ -22,9 +22,9 @@ knitr::opts_chunk$set(
 
 ## Installation
 
-You can install the development version of crirt with:
+You can install the development version of AcaOut with:
 
 ``` r
-devtools::install_github("giuseppealfonzetti/crirt")
+devtools::install_github("giuseppealfonzetti/AcaOut")
 ```
 

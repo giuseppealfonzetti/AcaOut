@@ -1,6 +1,7 @@
 #ifndef extractParams_H
 #define extractParams_H
 #include "thresholds.h"
+#include <cmath>
 
 //' Extract indices of parameters related to the IRT model
 //'
@@ -95,7 +96,9 @@ namespace params
  ){
    const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
    Eigen::MatrixXd L(2,2);
-   L << 1, THETA(dim_irt), 0, THETA(dim_irt+1);
+   const double l21 = THETA(dim_irt);
+   const double l22 = std::exp(THETA(dim_irt+1));
+   L << 1, l21, 0, l22;
    return(L);
  }
 }

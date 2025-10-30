@@ -44,9 +44,9 @@ compute_map_rolling <- function(
       "`CUTOFF_YEAR` must be less than or equal to the maximum observed year."
     )
   }
-  if (CUTOFF_YEAR == yb) {
-    return(compute_map(FIT, MATSTART = MATSTART, TIDY = TIDY))
-  }
+  # if (CUTOFF_YEAR == yb) {
+  #   return(compute_map(FIT, MATSTART = MATSTART, TIDY = TIDY))
+  # }
   if (length(YEAR_LENGTH) != 1 || !is.finite(YEAR_LENGTH) || YEAR_LENGTH <= 0) {
     stop("`YEAR_LENGTH` must be a positive scalar.")
   }

@@ -54,7 +54,9 @@ predict_one_year <- function(
   cutoff_exam_day <- if (CUTOFF_YEAR == 0L) {
     0L
   } else {
-    as.integer(round(GRAD_EXTENSION * CUTOFF_YEAR * YEAR_LENGTH))
+    as.integer(round(
+      GRAD_EXTENSION * YEAR_LENGTH + C(UTOFF_YEAR - 1) * YEAR_LENGTH
+    ))
   }
   grades_trunc <- grades
   times_trunc <- times

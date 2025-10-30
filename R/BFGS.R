@@ -122,30 +122,47 @@
 #'
 #' @importFrom stats sd
 #' @export
-fit_BFGS2 <- function(DATA,
-                     GRID, WEIGHTS, THETA_START = NULL,
-                     MOD,
-                     ...){
-
-  if(!(MOD%in%c("full", "grtc"))){
+fit_BFGS2 <- function(DATA, GRID, WEIGHTS, THETA_START = NULL, MOD, ...) {
+  if (!(MOD %in% c("full", "grtc"))) {
     stop("Select MOD among `full` or `grtc`.")
   }
 
-  if(is.null(THETA_START)){
-    startIRTMat <- matrix(NA, DATA$data_dims$n_exams, DATA$data_dims$n_grades+3)
-    startIRTMat[,1:DATA$n_grades] <- matrix(rep(seq(-2,4, length.out = DATA$n_grades), DATA$data_dims$n_exams), DATA$n_exams, DATA$n_grades, byrow = TRUE)
-    startIRTMat[,DATA$n_grades+1] <- 1
-    startIRTMat[,DATA$n_grades+2] <- apply(DATA$timeMat, MARGIN = 2, FUN = function(x) mean(log(x), na.rm = TRUE))
-    startIRTMat[,DATA$n_grades+3] <- apply(DATA$timeMat, MARGIN = 2, FUN = function(x) 1/sd(x, na.rm = TRUE))
+  if (is.null(THETA_START)) {
+    startIRTMat <- matrix(
+      NA,
+      DATA$data_dims$n_exams,
+      DATA$data_dims$n_grades + 3
+    )
+    startIRTMat[, 1:DATA$n_grades] <- matrix(
+      rep(seq(-2, 4, length.out = DATA$n_grades), DATA$data_dims$n_exams),
+      DATA$n_exams,
+      DATA$n_grades,
+      byrow = TRUE
+    )
+    startIRTMat[, DATA$n_grades + 1] <- 1
+    startIRTMat[, DATA$n_grades + 2] <- apply(
+      DATA$timeMat,
+      MARGIN = 2,
+      FUN = function(x) mean(log(x), na.rm = TRUE)
+    )
+    startIRTMat[, DATA$n_grades + 3] <- apply(
+      DATA$timeMat,
+      MARGIN = 2,
+      FUN = function(x) 1 / sd(log(x), na.rm = TRUE)
+    )
     startLatMat <- diag(1, 2, 2)
     startBeta <- matrix(-1, DATA$data_dims$yb, 2)
     startGradInt <- 3
-    start_par <- parList2Vec(list("irt"=startIRTMat, 'lat_var'=startLatMat, "cr"=list("beta"=startBeta, "grad"=startGradInt)))
-  }else{
+    start_par <- parList2Vec(list(
+      "irt" = startIRTMat,
+      'lat_var' = startLatMat,
+      "cr" = list("beta" = startBeta, "grad" = startGradInt)
+    ))
+  } else {
     start_par <- THETA_START
   }
 
-  NLL <- function(x){
+  NLL <- function(x) {
     -cpp_GQ(
       THETA = x,
       EXAMS_GRADES = DATA$gradesMat,
@@ -165,11 +182,11 @@ fit_BFGS2 <- function(DATA,
       N_EXAMS = DATA$data_dims$n_exams,
       GRFLAG = FALSE,
       LATPARFLAG = TRUE,
-      MOD=MOD
+      MOD = MOD
     )$ll
   }
 
-  NGR <- function(x){
+  NGR <- function(x) {
     -cpp_GQ(
       THETA = x,
       EXAMS_GRADES = DATA$gradesMat,
@@ -189,7 +206,7 @@ fit_BFGS2 <- function(DATA,
       N_EXAMS = DATA$data_dims$n_exams,
       GRFLAG = TRUE,
       LATPARFLAG = TRUE,
-      MOD=MOD
+      MOD = MOD
     )$gr
   }
   fit <- ucminf::ucminf(par = start_par, fn = NLL, gr = NGR, hessian = 2, ...)
@@ -204,5 +221,6 @@ fit_BFGS2 <- function(DATA,
       "start_par" = start_par,
       "mod" = MOD,
       "fit" = fit
-    ))
+    )
+  )
 }

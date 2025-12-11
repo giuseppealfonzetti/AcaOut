@@ -16,7 +16,15 @@ compute_stderr(
 \arguments{
 \item{FIT}{Output from \link{fit_EM} or \link{fit_BFGS}}
 
+\item{METHOD}{Choose among \code{sample} \code{num} and \code{bfgs}.}
+
 \item{TIDY}{Return tidy parameter table}
+
+\item{GRID}{GH points grid}
+
+\item{WEIGHTS}{GH weights}
+
+\item{VERBOSE}{TRUE for verbose output}
 }
 \description{
 Compute standard errors from GRTCM fit

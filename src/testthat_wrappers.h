@@ -7,12 +7,11 @@
 #include "latent.h"
 #include "cr.h"
 #include <cmath>
-#include "conditional_models.h"
+// #include "conditional_models.h"
 #include "em.h"
 #include "GRTCM.h"
 
 // EXAMS //
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_pGreaterGrades(
     const unsigned int GRADE,
@@ -36,7 +35,6 @@ Rcpp::List cpp_pGreaterGrades(
   return output;
 }
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_pGrade(
     const unsigned int GRADE,
@@ -60,7 +58,6 @@ Rcpp::List cpp_pGrade(
   return output;
 }
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_pTimeExam(
     const unsigned int EXAM,
@@ -86,7 +83,6 @@ Rcpp::List cpp_pTimeExam(
   return output;
 }
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_examLik(
     const unsigned int EXAM,
@@ -113,7 +109,6 @@ Rcpp::List cpp_examLik(
   return output;
 }
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_grtcm_class(
     Eigen::Map<Eigen::VectorXd> THETA,
@@ -173,7 +168,6 @@ Rcpp::List cpp_grtcm_class(
 
 
 // COMPETING RISK //
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_survival(
     const int YEAR_FIRST,
@@ -214,7 +208,6 @@ Rcpp::List cpp_survival(
 }
 
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_hazard(
     const int OUTCOME,
@@ -252,7 +245,6 @@ Rcpp::List cpp_hazard(
 }
 
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_outcome(
     const int OUTCOME,
@@ -295,7 +287,6 @@ Rcpp::List cpp_outcome(
 
   return output;
 }
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_cr_class(
     const int OUTCOME,
@@ -324,7 +315,6 @@ Rcpp::List cpp_cr_class(
 }
 
 // Latent
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_lat(
     Eigen::Map<Eigen::VectorXd> THETA,
@@ -352,7 +342,6 @@ Rcpp::List cpp_lat(
 }
 
 // Expectation Maximization
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_estep(
     Eigen::VectorXd THETA,
@@ -411,68 +400,9 @@ Rcpp::List cpp_estep(
   return output;
 
 }
-//
-// // Expectation Maximization
-// //' @export
-// // [[Rcpp::export]]
-// Rcpp::List cpp_mstep(
-//     Eigen::VectorXd THETA,
-//     Eigen::MatrixXd EXAMS_GRADES,
-//     Eigen::MatrixXd EXAMS_DAYS,
-//     Eigen::MatrixXd EXAMS_SET,
-//     Eigen::MatrixXd EXAMS_OBSFLAG,
-//     Eigen::VectorXd MAX_DAY,
-//     Eigen::VectorXd OUTCOME,
-//     Eigen::MatrixXd EXT_COVARIATES,
-//     Eigen::VectorXd YEAR_FIRST,
-//     Eigen::VectorXd YEAR_LAST,
-//     Eigen::VectorXd YEAR_LAST_EXAM,
-//     Eigen::MatrixXd GRID,
-//     Eigen::VectorXd EWEIGHTS,
-//     const unsigned int YB,
-//     const unsigned int N_GRADES,
-//     const unsigned int N_EXAMS,
-//     const std::string MOD
-// ){
-//
-//   const int m = EXT_COVARIATES.cols();
-//   const int dim_cr = 2*(YB+m+2)+1;
-//   const int dim_irt = THETA.size()-dim_cr-2;
-//
-//
-//
-//   Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
-//
-//   EM::Ejnll eclass(
-//       EXAMS_GRADES,
-//       EXAMS_DAYS,
-//       EXAMS_SET,
-//       EXAMS_OBSFLAG,
-//       MAX_DAY,
-//       OUTCOME,
-//       EXT_COVARIATES,
-//       YEAR_FIRST,
-//       YEAR_LAST,
-//       YEAR_LAST_EXAM,
-//       YB,
-//       N_GRADES,
-//       N_EXAMS,
-//       MOD
-//   );
-//
-//   eclass.update_quadrature(GRID, EWEIGHTS);
-//
-//   double nll = eclass.f_grad(THETA, gr);
-//   Rcpp::List output = Rcpp::List::create(
-//     Rcpp::Named("nll")=nll,
-//     Rcpp::Named("gr")=gr
-//   );
-//   return output;
-//
-// }
+
 
 // Expectation Maximization
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_mstep2(
     Eigen::VectorXd THETA,

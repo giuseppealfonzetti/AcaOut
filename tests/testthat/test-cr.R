@@ -16,7 +16,7 @@ labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
 
 set.seed(123)
 theta_irt <- rnorm(dim_irt)
-theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- log(abs(theta_lat[2]))
 theta_cr <- rnorm(dim_cr)
 theta <- c(theta_irt, theta_lat, theta_cr)
 parList <- parVec2List(
@@ -35,7 +35,7 @@ RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, LATPARFLAG, GRF
   sp <- SPEED
   if(LATPARFLAG){
     ab <- ABILITY + t(PAR[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- PAR[dim_irt+1]*ABILITY + PAR[dim_irt+2]*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- PAR[dim_irt+1]*ABILITY + exp(PAR[dim_irt+2])*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
   obj <- cpp_hazard(
     OUTCOME=OUTCOME,
@@ -80,7 +80,7 @@ RFUN <- function(PAR, ABILITY, SPEED, YEAR, COVARIATES, LATPARFLAG, GRFLAG=FALSE
   sp <- SPEED
   if(LATPARFLAG){
     ab <- ABILITY + t(PAR[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- PAR[dim_irt+1]*ABILITY + PAR[dim_irt+2]*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- PAR[dim_irt+1]*ABILITY + exp(PAR[dim_irt+2])*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
   obj <- cpp_survival(
     YEAR_FIRST = 1,
@@ -123,7 +123,7 @@ RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, YLE, LATPARFLAG
   sp <- SPEED
   if(LATPARFLAG){
     ab <- ABILITY + t(PAR[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- PAR[dim_irt+1]*ABILITY + PAR[dim_irt+2]*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- PAR[dim_irt+1]*ABILITY + exp(PAR[dim_irt+2])*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
   obj <- cpp_outcome(
     OUTCOME = OUTCOME,
@@ -168,7 +168,7 @@ RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, YLE, LATPARFLAG
   sp <- SPEED
   if(LATPARFLAG){
     ab <- ABILITY + t(PAR[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- PAR[dim_irt+1]*ABILITY + PAR[dim_irt+2]*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- PAR[dim_irt+1]*ABILITY + exp(PAR[dim_irt+2])*SPEED + t(PAR[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
   obj <- cpp_cr_class(
     OUTCOME = OUTCOME,

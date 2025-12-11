@@ -25,10 +25,11 @@ Imports:
     Rcpp,
     RcppEigen,
     dplyr,
+    tibble,
     tidyr,
     purrr,
+    Matrix,
     ucminf,
-    optimx,
     MASS
 URL: https://github.com/giuseppealfonzetti/AcaOut
 BugReports: https://github.com/giuseppealfonzetti/AcaOut/issues

@@ -13,7 +13,7 @@ labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
 
 set.seed(123)
 theta_irt <- rnorm(dim_irt)
-theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- log(abs(theta_lat[2]))
 theta_cr <- rnorm(dim_cr)
 theta <- c(theta_irt, theta_lat, theta_cr)
 

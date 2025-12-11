@@ -55,7 +55,7 @@ predict_one_year <- function(
     0L
   } else {
     as.integer(round(
-      GRAD_EXTENSION * YEAR_LENGTH + C(UTOFF_YEAR - 1) * YEAR_LENGTH
+      GRAD_EXTENSION * YEAR_LENGTH + (CUTOFF_YEAR - 1) * YEAR_LENGTH
     ))
   }
   grades_trunc <- grades

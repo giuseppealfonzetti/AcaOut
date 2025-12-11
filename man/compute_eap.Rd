@@ -10,8 +10,6 @@ compute_eap(FIT, TIDY = TRUE)
 \item{FIT}{Output from \link{fit_EM} or \link{fit_BFGS}}
 
 \item{TIDY}{Return tidy parameter table}
-
-\item{MATSTART}{Starting values for the latent scores}
 }
 \description{
 Compute MAP scores for Graded Response Time Censored Model

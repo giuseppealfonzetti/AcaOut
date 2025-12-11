@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(crirt)
+library(AcaOut)
 
-test_check("crirt")
+test_check("AcaOut")

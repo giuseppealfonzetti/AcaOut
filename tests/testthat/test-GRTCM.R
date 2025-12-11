@@ -17,7 +17,7 @@ labs_cov <- if(n_cov>0) paste0("X",1:n_cov)
 
 set.seed(123)
 theta_irt <- rnorm(dim_irt)
-theta_lat <- rnorm(dim_lat); theta_lat[2] <- abs(theta_lat[2])
+theta_lat <- rnorm(dim_lat); theta_lat[2] <- log(abs(theta_lat[2]))
 theta_cr <- rnorm(dim_cr)
 theta <- c(theta_irt, theta_lat, theta_cr)
 parList <- parVec2List(
@@ -85,7 +85,7 @@ RFUN <- function(x, ID, COVARIATES=X[ID,], LATPARFLAG, LAT_POINTS, GRFLAG=FALSE)
   sp <- LAT_POINTS[2]
   if(LATPARFLAG){
     ab <- LAT_POINTS[1] + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- x[dim_irt+1]*LAT_POINTS[1] + x[dim_irt+2]*LAT_POINTS[2] + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- x[dim_irt+1]*LAT_POINTS[1] + exp(x[dim_irt+2])*LAT_POINTS[2] + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
   obj <- cpp_grtcm_class(
     THETA = x,
@@ -115,7 +115,7 @@ examLik <- function(x, SPEED, ABILITY, LATPARFLAG, COVARIATES, OUT="ll",  ...){
   sp <- SPEED
   if(LATPARFLAG){
     ab <- ABILITY + t(x[(dim_irt+3):(dim_irt+2+n_cov)])%*%COVARIATES
-    sp <- x[dim_irt+1]*ABILITY + x[dim_irt+2]*SPEED + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
+    sp <- x[dim_irt+1]*ABILITY + exp(x[dim_irt+2])*SPEED + t(x[(dim_irt+2+n_cov+1):(dim_irt+dim_lat)])%*%COVARIATES
   }
 
 

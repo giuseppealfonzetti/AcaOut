@@ -9,14 +9,14 @@
 #' @param PARAMS Optional list of model parameters as returned by [parVec2List()].
 #' @param LATMAT Optional `N_STUDENTS x 2` matrix of latent ability and speed scores.
 #'
-#' @return A list structured as the output of [check_data()], enriched with the
+#' @return A list structured as the output of [check_data()], with the
 #'   true parameter list (element `params`) and the generated latent scores
 #'   (element `latent`). The object can be passed directly to [fit_EM()] or
 #'   [fit_BFGS()].
 #'
 #' @export
 #' @importFrom MASS mvrnorm
-#' @importFrom stats plogis qlogis runif rnorm
+#' @importFrom stats plogis qlogis runif rnorm rbinom
 simulate_crirt_data <- function(
   N_STUDENTS = 100,
   N_EXAMS = 10,

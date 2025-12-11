@@ -29,7 +29,9 @@ GRTCM_complete_obs(
 
 \item{EXAMS_SET}{Vector filled with booleans.\code{TRUE} elements represent exams in the study plan. \code{FALSE} elements non-relevant ones.}
 
-\item{MAX_DAY}{Last day of observation}
+\item{COVARIATES}{Vector of covariates.}
+
+\item{MAX_DAY}{Last day of observation.}
 
 \item{N_GRADES}{Number of grades modelled.}
 

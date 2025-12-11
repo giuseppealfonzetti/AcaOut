@@ -4,18 +4,19 @@
 #'
 #' @param FIT Output from [fit_EM] or [fit_BFGS]
 #' @param TIDY Return tidy parameter table
-#' @param MATSTART Starting values for the latent scores
 #'
 #' @importFrom dplyr as_tibble
 #' @export
-compute_eap <- function(FIT, TIDY = TRUE){
-
-  if(!(FIT$mod%in%c("full", "grtc"))){
+compute_eap <- function(FIT, TIDY = TRUE) {
+  if (!(FIT$mod %in% c("full", "grtc"))) {
     stop("Model not available. Provide fit object for `full` or `grtc` models.")
   }
 
-  message(paste0("Computing EAP latent score estimates of ", FIT$mod, " model."))
-
+  message(paste0(
+    "Computing EAP latent score estimates of ",
+    FIT$mod,
+    " model."
+  ))
 
   mat <- cpp_EAP(
     THETA = FIT$fit$par,
@@ -25,7 +26,7 @@ compute_eap <- function(FIT, TIDY = TRUE){
     EXAMS_OBSFLAG = !is.na(FIT$data$timeMat),
     MAX_DAY = FIT$data$max_time,
     OUTCOME = FIT$data$outcome,
-    EXT_COVARIATES = as.matrix(FIT$data$X) ,
+    EXT_COVARIATES = as.matrix(FIT$data$X),
     YEAR_FIRST = FIT$data$first_year,
     YEAR_LAST = FIT$data$last_year,
     YEAR_LAST_EXAM = FIT$data$yle,
@@ -35,16 +36,12 @@ compute_eap <- function(FIT, TIDY = TRUE){
     N_GRADES = FIT$data$data_dims$n_grades,
     N_EXAMS = FIT$data$data_dims$n_exams,
     MOD = FIT$mod,
-    VERBOSE=FALSE
-    )$EAP
-
-
-
-
+    VERBOSE = FALSE
+  )$EAP
 
   rownames(mat) <- FIT$data$labs$obs
   colnames(mat) <- c("ability", "speed")
-  if(TIDY){
+  if (TIDY) {
     mat <- as_tibble(mat, rownames = "subject_id")
   }
 

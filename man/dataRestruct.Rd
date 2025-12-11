@@ -30,5 +30,5 @@ dataRestruct(
 \item{MAXTIME_COL}{Label of the column where to find the maximum time observed for each student.}
 }
 \description{
-Helper function to extract information needed from the dataset
+Helper function to extract information needed from the administrative dataset
 }

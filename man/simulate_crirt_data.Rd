@@ -33,7 +33,7 @@ simulate_crirt_data(
 \item{LATMAT}{Optional \verb{N_STUDENTS x 2} matrix of latent ability and speed scores.}
 }
 \value{
-A list structured as the output of \code{\link[=check_data]{check_data()}}, enriched with the
+A list structured as the output of \code{\link[=check_data]{check_data()}}, with the
 true parameter list (element \code{params}) and the generated latent scores
 (element \code{latent}). The object can be passed directly to \code{\link[=fit_EM]{fit_EM()}} or
 \code{\link[=fit_BFGS]{fit_BFGS()}}.

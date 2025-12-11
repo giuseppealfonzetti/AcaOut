@@ -17,7 +17,8 @@
 //' @param EXAMS_DAYS Vector of times.
 //' @param EXAMS_OBSFLAG Vector of booleans.`TRUE` elements represent observed exams. `FALSE` elements the unobserved ones.
 //' @param EXAMS_SET Vector filled with booleans.`TRUE` elements represent exams in the study plan. `FALSE` elements non-relevant ones.
-//' @param MAX_DAY Last day of observation
+//' @param COVARIATES Vector of covariates.
+//' @param MAX_DAY Last day of observation.
 //' @param N_GRADES Number of grades modelled.
 //' @param N_EXAMS Number of exams modelled
 //' @param ABILITY Ability value.
@@ -26,7 +27,6 @@
 //' @return It returns the value of the integrand function,
 //' given the parameters and the data of a single observation.
 //'
-//' @export
 // [[Rcpp::export]]
 double GRTCM_complete_obs(
     Eigen::VectorXd THETA,
@@ -52,7 +52,6 @@ double GRTCM_complete_obs(
 }
 
 
-//' @export
 // [[Rcpp::export]]
 double CRGRTCM_complete_obs(
     Eigen::VectorXd THETA,

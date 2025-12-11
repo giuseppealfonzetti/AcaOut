@@ -8,13 +8,12 @@
 #include "latent.h"
 #include "cr.h"
 #include "testthat_wrappers.h"
-#include "conditional_models.h"
+// #include "conditional_models.h"
 #include "joint_models.h"
 #include "GRTCM.h"
 #include "gq.h"
 
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List CCR(
     Eigen::Map<Eigen::VectorXd> THETA,
@@ -45,7 +44,6 @@ Rcpp::List CCR(
 
 
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_EM(
     Eigen::VectorXd THETA_START,
@@ -161,7 +159,6 @@ Rcpp::List cpp_EM(
 }
 
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List cpp_GQ(
     Eigen::VectorXd THETA,
@@ -214,7 +211,6 @@ Rcpp::List cpp_GQ(
 
 
 
-//' @export
  // [[Rcpp::export]]
  Rcpp::List cpp_EAP(
      Eigen::VectorXd THETA,
@@ -279,30 +275,6 @@ Rcpp::List cpp_GQ(
     mu_i_ability = EXT_COVARIATES.row(i)*THETA.segment(dim_irt+2, n_cov);
     mu_i_speed = EXT_COVARIATES.row(i)*THETA.segment(dim_irt+2+n_cov, n_cov);
 
-    // Eigen::VectorXd todo = EXAMS_SET.row(i);
-    // // Initialize conditional IRT model
-    // grtcm::GRTC grtcm(THETA,
-    //                   EXAMS_GRADES.row(i),
-    //                   EXAMS_DAYS.row(i),
-    //                   EXAMS_SET.row(i),
-    //                   EXAMS_OBSFLAG.row(i),
-    //                   EXT_COVARIATES.row(i),
-    //                   MAX_DAY(i),
-    //                   N_GRADES,
-    //                   N_EXAMS,
-    //                   false);
-    //
-    // // Initialize conditional CR model
-    // cr::CCR ccrm(THETA,
-    //              OUTCOME(i),
-    //              EXT_COVARIATES.row(i),
-    //              YB,
-    //              YEAR_FIRST(i),
-    //              YEAR_LAST(i),
-    //              YEAR_LAST_EXAM(i),
-    //              false);
-    //
-
     for(unsigned int point = 0; point < nq; point++){
 
       Eigen::VectorXd lat = grid.row(point);
@@ -311,13 +283,6 @@ Rcpp::List cpp_GQ(
 
     }
   }
-
-
-
-
-
-
-
 
    Rcpp::List output =
      Rcpp::List::create(

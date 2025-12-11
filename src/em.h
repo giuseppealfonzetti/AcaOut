@@ -6,7 +6,6 @@
 #include "extractParams.h"
 #include "latent.h"
 #include "cr.h"
-#include "conditional_models.h"
 #include "GRTCM.h"
 #include <RcppNumerical.h>
 #include <cmath>

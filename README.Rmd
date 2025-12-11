@@ -21,7 +21,9 @@ knitr::opts_chunk$set(
 [![R-CMD-check](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-Support package for "A joint model for academic outcomes and students' exam performance with informative censoring".
+This repository contains the support package for Alfonzetti, G., and Battauz, M. "A joint model for academic outcomes and students' exam performance with informative censoring". 
+
+The package is called `AcaOut`, and provides the user with the data anlaysed in the manuscript, as well as some convenient functions and utilities to apply the proposed joint model on new data.
 
 ## Installation
 
@@ -31,8 +33,13 @@ You can install the development version of AcaOut with:
 devtools::install_github("giuseppealfonzetti/AcaOut")
 ```
 
-## Example 
+## Case study
 
+The replication code for the analysis of the data presented in the manuscript can be found as a standalone report in the `vignette/article` folder of the package. [See here]()
+
+## Usage example 
+
+We provide here a short usage example using a small sythetic dataset.
 The package is shipped with a function for simulating students data:
 
 ```{r}

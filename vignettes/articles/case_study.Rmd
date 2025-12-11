@@ -1,0 +1,309 @@
+---
+title: "Case study replication"
+html_document:
+    code_folding: hide
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## The data
+
+We can  access the case study data via the `stud_careers` object exported by `AcaOut`:
+
+```{r setup}
+library(AcaOut)
+library(tidyverse)
+names(stud_careers)
+```
+
+The `stud_careers` object is a list containing structured data about students careers and academic outcomes. In particular, it gathers the following matrices and vectors:
+
+```{r}
+# study plans
+stud_careers$todoMat[1:5, 1:5]
+
+# exams grades
+stud_careers$gradesMat[1:5, 1:5]
+
+# exams times
+stud_careers$timeMat[1:5, 1:5]
+
+# outcomes
+stud_careers$outcome[1:5]
+
+# first enrollment year
+stud_careers$first_year[1:5]
+
+# last enrollment year
+stud_careers$last_year[1:5]
+
+# year of plan completion
+stud_careers$yle[1:5]
+
+# last observed day
+stud_careers$max_time[1:5]
+
+# covariates
+stud_careers$X[1:5, ]
+```
+
+Use `?stud_careers` for further details about the data.
+
+## Data exploration
+
+```{r}
+my_pal <- c(
+  "Graduation" = "#009E73",
+  "Dropout" = "#D55E00",
+  "Transfer" = "#E69F00",
+  "Still enrolled\nat last observation\nyear" = "#A9A9A9"
+)
+year_length <- 365
+max_day <- max(stud_careers$timeMat, na.rm = TRUE)
+grid_days <- seq(0, max_day, by = 365/4)
+
+exam_info <- tibble(exam = stud_careers$labs$exams) |>
+  mutate(
+    median_day = map_dbl(seq_along(stud_careers$labs$exams), function(j) {
+      vals <- stud_careers$timeMat[, j][stud_careers$todoMat[, j] == 1]
+      vals <- vals[is.finite(vals)]
+      if (length(vals) == 0) {
+        return(NA)
+      }
+      stats::median(vals)
+    }),
+    median_year = if_else(
+      is.na(median_day),
+      NA,
+      ceiling(median_day / year_length)
+    ),
+    passing_curve = map(seq_along(stud_careers$labs$exams), function(j) {
+      vals <- stud_careers$timeMat[, j][stud_careers$todoMat[, j] == 1]
+      if (length(vals) == 0) {
+        return(tibble(day = numeric(0), cum_rate = numeric(0)))
+      }
+      vals <- replace_na(vals, Inf)
+      tibble(
+        day = grid_days,
+        cum_rate = map_dbl(grid_days, ~ mean(vals <= .x, na.rm = TRUE))
+      )
+    })
+  )
+
+exam_times_long <- exam_info |>
+  filter(!is.na(median_year)) |>
+  select(exam, median_year, passing_curve) |>
+  unnest(passing_curve) |>
+  mutate(
+    years_since_enrolment = day / year_length,
+    year_bucket = factor(median_year)
+  ) |>
+  mutate(
+    year_bucket = factor(
+      year_bucket,
+      levels = 1:3,
+      labels = c("First year exams", "Second year exams", "Third year exams")
+    )
+  )
+
+
+
+gg_pass <- exam_times_long |>
+  ggplot(
+    aes(
+      x = day,
+      y = cum_rate,
+      group = exam,
+      colour = year_bucket
+    )
+  ) +
+  geom_line(col = "#56B4E9") +
+  ggrepel::geom_text_repel(
+    data = exam_times_long |>
+      group_by(exam) |>
+      filter(day == max(day)),
+    aes(x = day + 10, y = cum_rate, label = exam),
+    nudge_x = 150,
+    vjust = .5,
+    min.segment.length = .1,
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  facet_grid(~year_bucket, scales = "free") +
+  labs(
+    x = "Days since enrollment",
+    y = "Cumulative passing rate",
+  ) +
+  theme_bw() +
+  xlim(c(0, 2500)) +
+  theme(
+    plot.margin = margin(5.5, 40, 5.5, 5.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank()
+  ) +
+  scale_y_continuous(breaks = seq(0, 1, .20))
+gg_pass
+```
+
+
+
+```{r}
+gg_out <- tibble(
+  outcome = stud_careers$outcome,
+  year = stud_careers$last_year
+) |>
+  group_by(year, outcome) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  complete(year, outcome) |>
+  mutate(n = replace_na(n, 0)) |>
+  mutate(
+    outcome = factor(
+      outcome,
+      levels = 0:3,
+      labels = c(
+        "Still enrolled\nat last observation\nyear",
+        "Graduation",
+        "Dropout",
+        "Transfer"
+      )
+    ),
+    year = factor(year, levels = 1:5, labels = paste0("Year ", 1:5))
+  ) |>
+  ggplot(aes(x = year, y = n, fill = outcome, group = outcome)) +
+  geom_col(position = "dodge", na.rm = FALSE) +
+  theme_bw() +
+  scale_fill_manual(values = my_pal) +
+  labs(x = "", y = "Number of students", fill = "") +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    legend.position = "top"
+  ) +
+  scale_y_continuous(breaks = seq(0, 350, 50))
+gg_out
+```
+
+
+## Fitting
+
+First, we set up the quadrature grid
+
+```{r}
+nq <- 12
+gq <- statmod::gauss.quad.prob(nq, dist = "normal")
+nodes <- gq$nodes
+weights <- gq$weights
+nodes <- as.matrix(expand.grid(nodes, nodes))
+weights <- expand.grid(weights, weights)
+weights <- apply(weights, 1, prod)
+```
+
+To initialise the estimation of the joint model of grades and times, 
+
+1. Fit the measurement+structural model (i.e. graded response time censored model) via EM. We use the function `fit_EM()` specifying `MOD="grtc" `.
+
+```{r eval=FALSE}
+grtcEM <- fit_EM(
+    DATA = stud_careers,
+    GRID = nodes,
+    WEIGHTS = weights,
+    M_MAX_ITER = 100,
+    MAX_ITER = 100,
+    TOL = 1e-4,
+    MOD = "grtc"
+  )
+```
+
+2. Compute maximum a posteriori latent ability and speed with the `compute_map()` function:
+
+```{r eval=FALSE}
+map_grtc <- compute_map(grtcEM, TIDY = FALSE)
+```
+
+3. Compute outcome model conditioned on maximum a posteriori latent traits with the `fit_CCR()` function;
+
+```{r eval=FALSE}
+fitCCR <- crirt::fit_CCR(
+  DATA = stud_careers,
+  PAR_START = grtcEM$fit$path_theta[[which.min(grtcEM$fit$path_enjll)]],
+  LATMAT = map_grtc
+)
+```
+
+and collect the estimates to construct the starting parameter vector `par_start`.
+
+```{r eval=FALSE}
+par_start <- grtcEM$fit$path_theta[[which.min(grtcEM$fit$path_enjll)]]
+par_start[
+  (stud_careers$par_dims$grtcm + stud_careers$par_dims$lat + 1):(stud_careers$par_dims$grtcm +
+    stud_careers$par_dims$lat +
+    stud_careers$par_dims$cr)
+] <- fitCCR$fit$par
+```
+
+At this point, we can start the EM estimation phase of the joint model by using the `fit_EM()` function with `MOD="full"`:
+
+```{r eval=FALSE}
+fullEM <- fit_EM(
+    DATA = stud_careers,
+    GRID = nodes,
+    WEIGHTS = weights,
+    M_MAX_ITER = 100,
+    MAX_ITER = 100,
+    TOL = 1e-4,
+    MOD = "full",
+    THETA_START = par_start
+  )
+```
+
+Once concluded, we finalise the estimates with the BFGS phase with the `fit_BFGS()` specifying `MOD="full"`:
+
+```{r eval=FALSE}
+fullBFGS <- fit_BFGS(
+    DATA = stud_careers,
+    GRID = nodes,
+    WEIGHTS = weights,
+    MOD = "full",
+    THETA_START = fullEM$fit$par
+  )
+```
+
+The function `compute_stderr()` compute the standard errors arrange all parameters in an easy to inspect table:
+
+```{r eval=FALSE}
+fullSE <- compute_stderr(fullBFGS, METHOD = "sample", TIDY = TRUE)
+```
+
+
+We can compute the maximum a posteriori estimates of the latent ability and speed by using `compute_map()`, 
+
+```{r eval=FALSE}
+map <- compute_map(fullBFGS, TIDY = TRUE)
+map$ability <- -map$ability # ability-related parameters sign-flipped during the estimation
+gg_map <- map |>
+  bind_cols(outcome = stud_careers$outcome) |>
+  mutate(
+    outcome = factor(
+      outcome,
+      levels = 0:3,
+      labels = c(
+        "Still enrolled\nat last observation\nyear",
+        "Graduation",
+        "Dropout",
+        "Transfer"
+      )
+    )
+  ) |>
+  ggplot(aes(x = ability, y = speed)) +
+  geom_point(aes(col = outcome), size = 2, alpha = .7) +
+  theme_bw() +
+  labs(col = "", x = "Ability", y = "Speed") +
+  theme(legend.position = 'right', panel.grid.minor = element_blank()) +
+  scale_color_manual(values = my_pal)
+```

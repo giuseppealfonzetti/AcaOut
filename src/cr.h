@@ -31,9 +31,9 @@ namespace cr
     double out;
 
 
-    if((OUTCOME == 2 | OUTCOME == 3) && YEAR > YB) Rcpp::stop("`YEAR` larger than `YB`");
+    if(((OUTCOME == 2) | (OUTCOME == 3)) && YEAR > YB) Rcpp::stop("`YEAR` larger than `YB`");
 
-    if(OUTCOME == 2 | OUTCOME == 3){
+    if((OUTCOME == 2) | (OUTCOME == 3)){
       const double int_d = theta_cr(YEAR);
       const double int_t = theta_cr(YEAR+YB+2);
       const Eigen::VectorXd beta_d = theta_cr.segment(YB+1, 2);
@@ -148,7 +148,7 @@ namespace cr
     if(OUTCOME==0){
       // The student is still enrolled
       logout = survival(YEAR_FIRST, YEAR_LAST, THETA, ABILITY, SPEED, YB, YEAR_LAST_EXAM, true);
-    }else if(OUTCOME==2|OUTCOME==3){
+    }else if((OUTCOME==2)|(OUTCOME==3)){
       if((YEAR_LAST_EXAM<=YEAR_LAST) & !LOGFLAG) return 0;
       if((YEAR_LAST_EXAM<=YEAR_LAST) & LOGFLAG) return -10000;//return R_NegInf;
 
@@ -207,9 +207,9 @@ namespace cr::grad{
     const double l21 = THETA(dim_irt);
     const double l22 = std::exp(THETA(dim_irt+1));
     double lpr;
-    if((OUTCOME == 2 | OUTCOME == 3) && YEAR > YB) Rcpp::stop("`YEAR` larger than `YB`");
+    if(((OUTCOME == 2) | (OUTCOME == 3)) && YEAR > YB) Rcpp::stop("`YEAR` larger than `YB`");
 
-    if(OUTCOME == 2 | OUTCOME == 3){
+    if((OUTCOME == 2) | (OUTCOME == 3)){
        const double int_d = theta_cr(YEAR);
        const double int_t = theta_cr(YEAR+YB+2);
        const Eigen::VectorXd beta_d = theta_cr.segment(YB+1, 2);
@@ -385,7 +385,7 @@ namespace cr::grad{
      logout = survival(YEAR_FIRST, YEAR_LAST, THETA, ABILITY, SPEED, YB, YEAR_LAST_EXAM, true);
      grl = gr_survival(YEAR_FIRST, YEAR_LAST, THETA, COVARIATES, ABILITY, SPEED, YB, YEAR_LAST_EXAM, LATPARFLAG)/exp(logout);
 
-   }else if(OUTCOME==2 | OUTCOME==3){
+   }else if((OUTCOME==2) | (OUTCOME==3)){
      if(YEAR_LAST_EXAM<=YEAR_LAST){
        logout = -10000; //return R_NegInf;
      } else {

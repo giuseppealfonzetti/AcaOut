@@ -72,7 +72,7 @@ namespace exams{
           out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
         }else if(GRADE==0){
           out = log1mexp(-pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true));
-        }else if(GRADE<N_GRADES & GRADE >0){
+        }else if((GRADE<N_GRADES) & (GRADE >0)){
           out = R::logspace_sub(pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true), pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true));
         }
 
@@ -83,7 +83,7 @@ namespace exams{
           out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
         }else if(GRADE==0){
           out = 1 - pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-        }else if(GRADE<N_GRADES & GRADE >0){
+        }else if((GRADE<N_GRADES) & (GRADE >0)){
           out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY)-pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
         }
       }
@@ -177,7 +177,7 @@ namespace exams::grad{
            gr = gr_pGreaterGrades2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
       }else if(GRADE==0){
            gr = - gr_pGreaterGrades2(1, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
-      }else if(GRADE<N_GRADES & GRADE >0){
+      }else if((GRADE<N_GRADES) & (GRADE >0)){
            gr = gr_pGreaterGrades2(GRADE, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG) - gr_pGreaterGrades2(GRADE+1, EXAM, THETA, COVARIATES, N_GRADES, N_EXAMS, ABILITY, LATPARFLAG);
       }
 
@@ -253,7 +253,7 @@ namespace exams::grad{
            gr = gr_pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
       }else if(GRADE==0){
            gr = - gr_pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-      }else if(GRADE<N_GRADES & GRADE >0){
+      }else if((GRADE<N_GRADES) & (GRADE >0)){
            gr = gr_pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY) - gr_pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
       }
 

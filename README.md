@@ -8,6 +8,7 @@
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
+[![R-CMD-check](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Support package for “A joint model for academic outcomes and students’

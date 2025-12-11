@@ -33,3 +33,6 @@ Imports:
     MASS
 URL: https://github.com/giuseppealfonzetti/AcaOut
 BugReports: https://github.com/giuseppealfonzetti/AcaOut/issues
+Depends: 
+    R (>= 3.5)
+LazyData: true

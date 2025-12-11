@@ -35,7 +35,7 @@ devtools::install_github("giuseppealfonzetti/AcaOut")
 
 ## Case study
 
-The replication code for the analysis of the data presented in the manuscript can be found as a standalone report in the `vignette/article` folder of the package. [See here]()
+The replication code for the analysis of the data presented in the manuscript can be found as a standalone report in the `vignette/article` folder of the package. [Link](https://github.com/giuseppealfonzetti/AcaOut/blob/master/vignettes/articles/case_study.Rmd)
 
 ## Usage example 
 

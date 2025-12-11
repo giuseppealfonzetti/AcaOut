@@ -11,9 +11,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [![R-CMD-check](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-This repository contains the support package for Alfonzetti, G., and
+This repository contains the support package for *Alfonzetti, G., and
 Battauz, M. “A joint model for academic outcomes and students’ exam
-performance with informative censoring”.
+performance with informative censoring”*.
 
 The package is called `AcaOut`, and provides the user with the data
 anlaysed in the manuscript, as well as some convenient functions and
@@ -31,7 +31,8 @@ devtools::install_github("giuseppealfonzetti/AcaOut")
 
 The replication code for the analysis of the data presented in the
 manuscript can be found as a standalone report in the `vignette/article`
-folder of the package. [See here]()
+folder of the package.
+[Link](https://github.com/giuseppealfonzetti/AcaOut/blob/master/vignettes/articles/case_study.Rmd)
 
 ## Usage example
 

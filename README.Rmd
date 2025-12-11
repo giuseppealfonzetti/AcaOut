@@ -13,12 +13,14 @@ knitr::opts_chunk$set(
 )
 ```
 
-# crirt
+# AcaOut
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
 <!-- badges: end -->
+
+Support package for "A joint model for academic outcomes and students' exam performance with informative censoring".
 
 ## Installation
 
@@ -28,3 +30,93 @@ You can install the development version of AcaOut with:
 devtools::install_github("giuseppealfonzetti/AcaOut")
 ```
 
+## Example 
+
+The package is shipped with a function for simulating students data:
+
+```{r}
+library(AcaOut)
+sim_data <- simulate_crirt_data(
+    N_STUDENTS = 100,
+    N_EXAMS = 10,
+    N_GRADES = 3,
+    MAX_YEAR = 3,
+    N_COV = 1,
+    SEED = 123
+  )
+```
+
+
+
+```{r}
+sim_data$gradesMat[1:5,1:5]
+sim_data$timeMat[1:5,1:5]
+sim_data$outcome[1:5]
+```
+
+For a quick glance, we can plot students into the latent space, while highlighting the academic outcome distribution:
+
+```{r}
+sim_lat <- as.data.frame(sim_data$latent)
+sim_lat$outcome <- factor(sim_data$outcome, levels = 0:3, labels = c("Still enrolled", "Graduation", "Dropout", "Tranfer"))
+tinyplot::tinytheme("clean2")
+tinyplot::tinyplot(
+  speed ~ ability | outcome, data = sim_lat,
+  cex=1.5,
+  alpha=.8,
+  palette= "okabe",
+  legend=list(title = "Academic\noutcome:"),
+  xlab="Ability", ylab="Speed") 
+
+
+```
+
+The package provides two fitting functions, `fit_EM()` and `fit_BFGS()`, which, given the quadrature grid and weights, allow to fit the joint model for outcomes and exams:
+
+```{r warning=FALSE, cache=TRUE}
+
+# Setup quadrature
+nq <- 12
+gq <- statmod::gauss.quad.prob(nq, dist = "normal")
+nodes <- gq$nodes
+weights <- gq$weights
+nodes <- as.matrix(expand.grid(nodes, nodes))
+weights <- expand.grid(weights, weights)
+weights <- apply(weights, 1, prod)
+
+# Start fit with EM
+em_fit <- fit_EM(
+    DATA = sim_data,
+    GRID = nodes,
+    WEIGHTS = weights,
+    M_MAX_ITER = 100,
+    MAX_ITER = 10,
+    TOL = 1e-4,
+    MOD = "full"
+  )
+
+# Finalise fit with BFGS
+bfgs_fit <- fit_BFGS(
+    DATA = sim_data,
+    GRID = nodes,
+    WEIGHTS = weights,
+    MOD = "full",
+    THETA_START = em_fit$fit$par
+  )
+
+```
+
+With the `compute_map()` function we can compute the maximum a posteriori students' ability and speed conditioned on the estimation results of the joint model for outcomes and exams:
+
+```{r}
+lat_map <- compute_map(bfgs_fit)
+lat_map$outcome <- factor(sim_data$outcome, levels = 0:3, labels = c("Still enrolled", "Graduation", "Dropout", "Tranfer"))
+tinyplot::tinytheme("clean2")
+tinyplot::tinyplot(
+  speed ~ ability | outcome, data = lat_map,
+  cex=1.5,
+  alpha=.8,
+  palette= "okabe",
+  legend=list(title = "Academic\noutcome:"),
+  xlab="Ability", ylab="Speed") 
+```

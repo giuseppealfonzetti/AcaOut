@@ -10,6 +10,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 <!-- badges: end -->
 
+Support package for “A joint model for academic outcomes and students’
+exam performance with informative censoring”.
+
 ## Installation
 
 You can install the development version of AcaOut with:
@@ -17,6 +20,8 @@ You can install the development version of AcaOut with:
 ``` r
 devtools::install_github("giuseppealfonzetti/AcaOut")
 ```
+
+## Example
 
 The package is shipped with a function for simulating students data:
 
@@ -33,39 +38,23 @@ sim_data <- simulate_crirt_data(
 ```
 
 ``` r
-head(sim_data$gradesMat)
-#>           exam_1 exam_2 exam_3 exam_4 exam_5 exam_6 exam_7 exam_8 exam_9
-#> student_1      1      1      1      1      1      1      1      1      1
-#> student_2      2      1      2      2      1      1      2      2      2
-#> student_3      2      3      3      3     NA      2     NA     NA      2
-#> student_4      2      1     NA     NA      1      2     NA     NA     NA
-#> student_5     NA     NA      2      1      2     NA     NA      1     NA
-#> student_6      2      2      2      2      2      1      2      2      2
-#>           exam_10
-#> student_1       1
-#> student_2       2
-#> student_3      NA
-#> student_4      NA
-#> student_5      NA
-#> student_6       2
-head(sim_data$timeMat)
-#>           exam_1 exam_2 exam_3 exam_4 exam_5 exam_6 exam_7 exam_8 exam_9
-#> student_1    151     39    635    109    250    343     83    195    773
-#> student_2    474     34    424     38    834    143     51     31    304
-#> student_3    463     70    722    793     NA    407     NA     NA    734
-#> student_4    360     54     NA     NA    215     66     NA     NA     NA
-#> student_5     NA     NA    390    379    393     NA     NA    616     NA
-#> student_6     81    135    146     68    182    474     65     39    151
-#>           exam_10
-#> student_1     415
-#> student_2      62
-#> student_3      NA
-#> student_4      NA
-#> student_5      NA
-#> student_6     211
-head(sim_data$outcome)
-#> student_1 student_2 student_3 student_4 student_5 student_6 
-#>         1         1         0         2         2         1
+sim_data$gradesMat[1:5,1:5]
+#>           exam_1 exam_2 exam_3 exam_4 exam_5
+#> student_1      1      1      1      1      1
+#> student_2      2      1      2      2      1
+#> student_3      2      3      3      3     NA
+#> student_4      2      1     NA     NA      1
+#> student_5     NA     NA      2      1      2
+sim_data$timeMat[1:5,1:5]
+#>           exam_1 exam_2 exam_3 exam_4 exam_5
+#> student_1    151     39    635    109    250
+#> student_2    474     34    424     38    834
+#> student_3    463     70    722    793     NA
+#> student_4    360     54     NA     NA    215
+#> student_5     NA     NA    390    379    393
+sim_data$outcome[1:5]
+#> student_1 student_2 student_3 student_4 student_5 
+#>         1         1         0         2         2
 ```
 
 For a quick glance, we can plot students into the latent space, while

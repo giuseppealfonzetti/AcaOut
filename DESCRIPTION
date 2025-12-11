@@ -13,7 +13,9 @@ Suggests:
     numDeriv,
     mvtnorm,
     knitr,
-    rmarkdown
+    rmarkdown,
+    statmod,
+    tinyplot
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -32,7 +34,7 @@ Imports:
     purrr,
     Matrix,
     ucminf,
-    MASS
+    MASS    
 URL: https://github.com/giuseppealfonzetti/AcaOut
 BugReports: https://github.com/giuseppealfonzetti/AcaOut/issues
 Depends: 

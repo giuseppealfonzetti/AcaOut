@@ -280,7 +280,6 @@ The function `compute_stderr()` compute the standard errors arrange all paramete
 fullSE <- compute_stderr(fullBFGS, METHOD = "sample", TIDY = TRUE)
 ```
 
-
 We can compute the maximum a posteriori estimates of the latent ability and speed by using `compute_map()`, 
 
 ```{r eval=FALSE}

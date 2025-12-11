@@ -1,49 +1,28 @@
 ---
-output: github_document
+title: "sim_example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{sim_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
+  comment = "#>"
 )
 ```
 
-# AcaOut
-
-<!-- badges: start -->
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-
-[![R-CMD-check](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/giuseppealfonzetti/AcaOut/actions/workflows/R-CMD-check.yaml)
-<!-- badges: end -->
-
-This repository contains the support package for *Alfonzetti, G., and Battauz, M. "A joint model for academic outcomes and students' exam performance with informative censoring"*. 
-
-The package is called `AcaOut`, and provides the user with the data anlaysed in the manuscript, as well as some convenient functions and utilities to apply the proposed joint model on new data.
-
-## Installation
-
-You can install the development version of AcaOut with:
-
-``` r
-devtools::install_github("giuseppealfonzetti/AcaOut")
-```
-
-## Case study
-
-The replication code for the analysis of the data presented in the manuscript can be found as a standalone report in the `vignette/article` folder of the package. [See here]()
-
-## Usage example 
 
 We provide here a short usage example using a small sythetic dataset.
 The package is shipped with a function for simulating students data:
 
-```{r}
+```{r sim}
 library(AcaOut)
+library(statmod)
+library(tinyplot)
+
 sim_data <- simulate_crirt_data(
     N_STUDENTS = 100,
     N_EXAMS = 10,
@@ -56,7 +35,7 @@ sim_data <- simulate_crirt_data(
 
 
 
-```{r}
+```{r show}
 sim_data$gradesMat[1:5,1:5]
 sim_data$timeMat[1:5,1:5]
 sim_data$outcome[1:5]
@@ -64,7 +43,7 @@ sim_data$outcome[1:5]
 
 For a quick glance, we can plot students into the latent space, while highlighting the academic outcome distribution:
 
-```{r}
+```{r true_lat}
 sim_lat <- as.data.frame(sim_data$latent)
 sim_lat$outcome <- factor(sim_data$outcome, levels = 0:3, labels = c("Still enrolled", "Graduation", "Dropout", "Tranfer"))
 tinyplot::tinytheme("clean2")
@@ -81,10 +60,10 @@ tinyplot::tinyplot(
 
 The package provides two fitting functions, `fit_EM()` and `fit_BFGS()`, which, given the quadrature grid and weights, allow to fit the joint model for outcomes and exams:
 
-```{r warning=FALSE, cache=TRUE}
+```{r fit, warning=FALSE, cache=TRUE}
 
 # Setup quadrature
-nq <- 12
+nq <- 3
 gq <- statmod::gauss.quad.prob(nq, dist = "normal")
 nodes <- gq$nodes
 weights <- gq$weights
@@ -116,7 +95,7 @@ bfgs_fit <- fit_BFGS(
 
 With the `compute_map()` function we can compute the maximum a posteriori students' ability and speed conditioned on the estimation results of the joint model for outcomes and exams:
 
-```{r}
+```{r map_lat}
 lat_map <- compute_map(bfgs_fit)
 lat_map$outcome <- factor(sim_data$outcome, levels = 0:3, labels = c("Still enrolled", "Graduation", "Dropout", "Tranfer"))
 tinyplot::tinytheme("clean2")

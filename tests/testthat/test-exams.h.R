@@ -1,4 +1,4 @@
-### gen params ####
+# generate parameters
 n_grades <- 4L
 n_exams  <- 3L
 n_cov    <- 2
@@ -39,7 +39,7 @@ mat <- irtVec2Mat(
 
 
 
-#### test exam-specific likelihood ####
+# exam-specific likelihood
 FUNEXAM <- function(x, OBSFLAG, LATPARFLAG=FALSE, OUT="ll"){
   ab <- ability
   sp <- speed
@@ -112,24 +112,21 @@ for (ability in rnorm(3,0,1)) {
 }
 
 
-## gradient checks ######
+# gradient checks
 n <- 10
 latMat <- matrix(c(rnorm((n-1)*2), -5,5),n,2, byrow = TRUE)
 X <- matrix(rnorm(n*n_cov), n, n_cov)
 set.seed(123)
 
-#### sim grades ####
+# simulate grades
 gradesMat <- matrix(0, n, n_exams)
 
 for (i in 1:n) {
   for (e in 1:n_exams) {
-    #linear predictor exams X grades
     linp <- mat[e, n_grades+1] * latMat[i,1] - mat[e, 1:n_grades]
 
-    # probabilities of greater grades
     pgg <- exp(linp)/(1+exp(linp))
 
-    # probabilities of grades
     pg <- c(pgg[1:(n_grades-1)] - pgg[2:n_grades], pgg[n_grades])
     gradesMat[i,e] <- which(rmultinom(n = 1, size=1, prob = c(1-sum(pg), pg))==1)-1
 
@@ -138,7 +135,7 @@ for (i in 1:n) {
 
 
 
-#### sim times ####
+# simulate times
 set.seed(123)
 timeMat <- matrix(NA, n, n_exams)
 for (i in 1:n) {
@@ -152,16 +149,16 @@ for (i in 1:n) {
 }
 timeMat[gradesMat==0] <- NA
 timeMat <- ceiling(timeMat)
-#### mat to-do ####
+# study plan
 todoMat <- matrix(1, n, n_exams)
 
-#### censoring ####
+# censoring
 max_day <- as.integer(max(timeMat, na.rm = TRUE)+10)
 timeMat[timeMat>max_day] <- NA
 obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0
 
-#### checks ####
+# checks
 RFUN <- function(x, SPEED, ABILITY, LATPARFLAG, COVARIATES, OUT="ll",  ...){
   ab <- ABILITY
   sp <- SPEED

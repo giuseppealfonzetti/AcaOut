@@ -51,13 +51,18 @@ test_that("simulate_crirt_data()", {
     SEED = 99
   )
 
+  # enough to fill every grade
+  n_students <- 300
   custom_lat <- matrix(
-    c(seq(-1, 0.8, length.out = 100), seq(0.5, -0.5, length.out = 100)),
+    c(
+      seq(-1, 0.8, length.out = n_students),
+      seq(0.5, -0.5, length.out = n_students)
+    ),
     ncol = 2
   )
 
   sim_custom <- simulate_crirt_data(
-    N_STUDENTS = 100,
+    N_STUDENTS = n_students,
     N_EXAMS = 3,
     N_GRADES = 3,
     MAX_YEAR = 3,
@@ -69,7 +74,7 @@ test_that("simulate_crirt_data()", {
 
   expect_equal(sim_custom$params, base_sim$params)
   expect_equal(sim_custom$latent, custom_lat, ignore_attr = TRUE)
-  expect_equal(dim(sim_custom$gradesMat), c(100, 3))
-  expect_equal(sim_custom$data_dims$n_obs, 100)
+  expect_equal(dim(sim_custom$gradesMat), c(n_students, 3))
+  expect_equal(sim_custom$data_dims$n_obs, n_students)
   expect_equal(sim_custom$yb, 3)
 })

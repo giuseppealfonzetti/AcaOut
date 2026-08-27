@@ -1,6 +1,6 @@
 set.seed(123)
 
-### gen params ####
+# generate parameters
 n_grades <- 2L
 n_exams  <- 2L
 n_cov    <- 1
@@ -29,7 +29,7 @@ parList <- parVec2List(
   LABS_GRADES = labs_grades)
 
 
-### hazard checks
+# hazard checks
 RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, LATPARFLAG, GRFLAG=FALSE){
   ab <- ABILITY
   sp <- SPEED
@@ -74,7 +74,7 @@ for (year in 1:yb) {
   }
 }
 
-### survival checks
+# survival checks
 RFUN <- function(PAR, ABILITY, SPEED, YEAR, COVARIATES, LATPARFLAG, GRFLAG=FALSE){
   ab <- ABILITY
   sp <- SPEED
@@ -117,7 +117,7 @@ for (year in 1:yb) {
     })
 }
 
-### outcome checks
+# outcome checks
 RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, YLE, LATPARFLAG, GRFLAG=FALSE){
   ab <- ABILITY
   sp <- SPEED
@@ -162,7 +162,7 @@ for (year in 1:yb) {
   }
 }
 
-### ccr class checks
+# ccr class checks
 RFUN <- function(PAR, ABILITY, SPEED, YEAR, OUTCOME, COVARIATES, YLE, LATPARFLAG, GRFLAG=FALSE){
   ab <- ABILITY
   sp <- SPEED

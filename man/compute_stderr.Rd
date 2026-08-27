@@ -6,23 +6,29 @@
 \usage{
 compute_stderr(
   FIT,
-  METHOD = c("sample", "num", "bfgs"),
+  METHOD = c("sample", "num", "bfgs", "sandwich"),
   TIDY = TRUE,
   GRID = NULL,
   WEIGHTS = NULL,
+  NCORES = NULL,
   VERBOSE = FALSE
 )
 }
 \arguments{
 \item{FIT}{Output from \link{fit_EM} or \link{fit_BFGS}}
 
-\item{METHOD}{Choose among \code{sample} \code{num} and \code{bfgs}.}
+\item{METHOD}{One of \code{sample} (OPG), \code{num} (inverse observed information),
+\code{bfgs} (optimiser inverse-Hessian) or \code{sandwich} (robust Huber-White
+estimator, consistent under misspecification).}
 
 \item{TIDY}{Return tidy parameter table}
 
 \item{GRID}{GH points grid}
 
 \item{WEIGHTS}{GH weights}
+
+\item{NCORES}{Cores for the finite-difference observed information used by
+\code{METHOD="sandwich"}. Defaults to \code{detectCores() - 1}, or \code{1} on Windows.}
 
 \item{VERBOSE}{TRUE for verbose output}
 }

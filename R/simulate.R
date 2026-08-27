@@ -8,6 +8,16 @@
 #' @param SEED Random seed used for reproducibility.
 #' @param PARAMS Optional list of model parameters as returned by [parVec2List()].
 #' @param LATMAT Optional `N_STUDENTS x 2` matrix of latent ability and speed scores.
+#' @param TODO Optional `N_STUDENTS x N_EXAMS` study plan; exams left out stay missing.
+#' @param X Optional `N_STUDENTS x N_COV` covariate matrix. Generated when missing.
+#' @param FIRST_YEAR Optional enrolment years. Dropout and transfer start from that year.
+#' @param ADMIN_YEAR Optional last year of follow up per student. Defaults to `MAX_YEAR`.
+#' @param YEAR_COMPLETE Optional year each student completes the plan, `100` when never.
+#'   Derived from the simulated exam times when missing.
+#' @param MAX_TIME_OFFSET Optional days added to `last_year * 365` for the last observable
+#'   day. Defaults to zero.
+#' @param YEAR_OFFSET Day of the year separating two academic years. Defaults to zero.
+#' @param CHECK Set to FALSE to skip [check_data()] and return the raw simulated bundle.
 #'
 #' @return A list structured as the output of [check_data()], with the
 #'   true parameter list (element `params`) and the generated latent scores
@@ -25,7 +35,15 @@ simulate_crirt_data <- function(
   N_COV = 2,
   SEED = 123,
   PARAMS = NULL,
-  LATMAT = NULL
+  LATMAT = NULL,
+  TODO = NULL,
+  X = NULL,
+  FIRST_YEAR = NULL,
+  ADMIN_YEAR = NULL,
+  YEAR_COMPLETE = NULL,
+  MAX_TIME_OFFSET = NULL,
+  YEAR_OFFSET = 0L,
+  CHECK = TRUE
 ) {
   stopifnot(N_STUDENTS > 0)
   stopifnot(N_EXAMS > 0)
@@ -52,7 +70,7 @@ simulate_crirt_data <- function(
       base_time <- log(130 + 25 * j)
       zeta <- rnorm(1, base_time, 0.12)
       omega <- runif(1, 0.9, 1.4)
-      irt[j, ] <- c(thresholds, slope, zeta, omega)
+      irt[j, ] <- c(slope * thresholds, slope, zeta, omega)
     }
 
     speed_sd <- runif(1, 0.55, 0.75)
@@ -94,9 +112,15 @@ simulate_crirt_data <- function(
     params <- generate_default_params()
   }
 
+  grad_intercept <- if (!is.null(params$cr$grad)) {
+    params$cr$grad
+  } else {
+    params$cr$graduation
+  }
+
   stopifnot(nrow(params$irt) == N_EXAMS)
   stopifnot(ncol(params$irt) == N_GRADES + 3)
-  stopifnot(length(params$cr$grad) == 1)
+  stopifnot(length(grad_intercept) == 1)
   stopifnot(nrow(params$cr$beta) == MAX_YEAR + 2)
   stopifnot(ncol(params$cr$beta) == 2)
 
@@ -106,11 +130,49 @@ simulate_crirt_data <- function(
     stopifnot(ncol(params$lat_reg) == N_COV)
   }
 
-  covariates <- matrix(rnorm(N_STUDENTS * N_COV), ncol = N_COV)
-  colnames(covariates) <- paste0("cov_", seq_len(N_COV))
-  if (N_COV >= 1) {
-    covariates[, 1] <- rbinom(N_STUDENTS, 1, 0.5)
+  covariates <- if (is.null(X)) {
+    cov_mat <- matrix(rnorm(N_STUDENTS * N_COV), ncol = N_COV)
+    if (N_COV >= 1) {
+      cov_mat[, 1] <- rbinom(N_STUDENTS, 1, 0.5)
+    }
+    colnames(cov_mat) <- paste0("cov_", seq_len(N_COV))
+    cov_mat
+  } else {
+    cov_mat <- as.matrix(X)
+    stopifnot(nrow(cov_mat) == N_STUDENTS, ncol(cov_mat) == N_COV)
+    cov_mat
   }
+
+  todo_mat <- if (is.null(TODO)) {
+    matrix(TRUE, nrow = N_STUDENTS, ncol = N_EXAMS)
+  } else {
+    matrix(as.logical(TODO), nrow = N_STUDENTS, ncol = N_EXAMS)
+  }
+
+  first_year <- if (is.null(FIRST_YEAR)) {
+    rep(1L, N_STUDENTS)
+  } else {
+    as.integer(FIRST_YEAR)
+  }
+
+  admin_year <- if (is.null(ADMIN_YEAR)) {
+    rep(as.integer(MAX_YEAR), N_STUDENTS)
+  } else {
+    as.integer(ADMIN_YEAR)
+  }
+
+  time_offset <- if (is.null(MAX_TIME_OFFSET)) {
+    rep(0L, N_STUDENTS)
+  } else {
+    as.integer(MAX_TIME_OFFSET)
+  }
+
+  stopifnot(length(first_year) == N_STUDENTS)
+  stopifnot(length(admin_year) == N_STUDENTS)
+  stopifnot(length(time_offset) == N_STUDENTS)
+  stopifnot(all(admin_year <= MAX_YEAR))
+
+  year_of <- function(t) pmax(1L, as.integer(ceiling((t - YEAR_OFFSET) / 365)))
 
   latent_mat <- if (is.null(LATMAT)) {
     mu_mat <- covariates %*% t(params$lat_reg)
@@ -131,7 +193,6 @@ simulate_crirt_data <- function(
 
   grades_mat <- matrix(NA_integer_, nrow = N_STUDENTS, ncol = N_EXAMS)
   time_mat <- matrix(NA_integer_, nrow = N_STUDENTS, ncol = N_EXAMS)
-  todo_mat <- matrix(TRUE, nrow = N_STUDENTS, ncol = N_EXAMS)
   colnames(grades_mat) <- colnames(time_mat) <- colnames(todo_mat) <- paste0(
     "exam_",
     seq_len(N_EXAMS)
@@ -141,7 +202,6 @@ simulate_crirt_data <- function(
     seq_len(N_STUDENTS)
   )
 
-  max_day <- MAX_YEAR * 365L
   outcomes <- integer(N_STUDENTS)
   last_year <- rep(1L, N_STUDENTS)
   last_exam_year <- rep(100L, N_STUDENTS)
@@ -154,49 +214,50 @@ simulate_crirt_data <- function(
   for (i in seq_len(N_STUDENTS)) {
     ability <- latent_mat[i, 1]
     speed <- latent_mat[i, 2]
+    plan <- which(todo_mat[i, ])
 
-    # Potential exam outcomes (before censoring)
-    potential_grades <- integer(N_EXAMS)
-    potential_times <- numeric(N_EXAMS)
+    potential_grades <- rep(NA_integer_, N_EXAMS)
+    potential_times <- rep(NA_real_, N_EXAMS)
 
-    for (j in seq_len(N_EXAMS)) {
+    for (j in plan) {
       irt_row <- params$irt[j, ]
-      thresholds <- irt_row[seq_len(N_GRADES)]
+      intercepts <- irt_row[seq_len(N_GRADES)]
       slope <- irt_row[N_GRADES + 1]
       zeta <- irt_row[N_GRADES + 2]
       omega <- irt_row[N_GRADES + 3]
 
-      logits_ge <- plogis(slope * (ability - thresholds))
-      probs <- numeric(N_GRADES)
-      for (k in seq_len(N_GRADES)) {
-        upper <- if (k == N_GRADES) {
-          0
-        } else {
-          plogis(slope * (ability - thresholds[k + 1]))
-        }
-        probs[k] <- logits_ge[k] - upper
+      cum <- plogis(slope * ability - intercepts)
+      if (runif(1) >= cum[1]) {
+        potential_times[j] <- Inf
+        next
       }
+
+      probs <- cum - c(cum[-1], 0)
       probs <- pmax(probs, 1e-8)
       probs <- probs / sum(probs)
       potential_grades[j] <- sample.int(N_GRADES, size = 1, prob = probs)
 
       mu_time <- zeta - speed
       sd_time <- 1 / max(omega, 1e-3)
-      potential_times[j] <- round(exp(rnorm(1, mean = mu_time, sd = sd_time)))
-      potential_times[j] <- max(1, potential_times[j])
+      potential_times[j] <- max(1, round(exp(rnorm(1, mean = mu_time, sd = sd_time))))
     }
 
-    complete_day <- max(potential_times)
-    year_complete <- if (complete_day <= max_day) {
-      ceiling(complete_day / 365)
+    year_complete <- if (!is.null(YEAR_COMPLETE)) {
+      if (YEAR_COMPLETE[i] >= 100) Inf else as.integer(YEAR_COMPLETE[i])
     } else {
-      Inf
+      complete_day <- if (length(plan) > 0) max(potential_times[plan]) else NA_real_
+      if (isTRUE(is.finite(complete_day))) year_of(complete_day) else Inf
+    }
+    if (is.finite(year_complete) && year_complete > admin_year[i]) {
+      year_complete <- Inf
     }
 
     draw_event <- function() {
-      latent_vec <- c(ability, speed)
-      for (yr in seq_len(MAX_YEAR)) {
-        if (yr < year_complete || is.infinite(year_complete)) {
+      if (first_year[i] > admin_year[i]) {
+        return(list(type = 0L, year = admin_year[i]))
+      }
+      for (yr in seq.int(first_year[i], admin_year[i])) {
+        if (yr < year_complete) {
           eta_d <- year_intercepts[yr, 1] +
             ability_effects[1] * ability +
             speed_effects[1] * speed
@@ -214,53 +275,58 @@ simulate_crirt_data <- function(
             return(list(type = 3L, year = yr))
           }
         } else {
-          p_g <- plogis(params$cr$grad)
-          if (runif(1) < p_g) {
+          if (runif(1) < plogis(grad_intercept)) {
             return(list(type = 1L, year = yr))
           }
         }
       }
-      list(type = 0L, year = MAX_YEAR)
+      list(type = 0L, year = admin_year[i])
     }
 
     event <- draw_event()
     outcomes[i] <- event$type
-    last_year[i] <- if (event$type == 0L) MAX_YEAR else event$year
+    last_year[i] <- if (event$type == 0L) admin_year[i] else event$year
 
-    if (event$type == 1L) {
-      event_day <- complete_day
-      observed_times <- potential_times
-      last_exam_year[i] <- as.integer(ceiling(complete_day / 365))
-    } else if (event$type == 0L) {
-      event_day <- max_day
-      observed_times <- potential_times
-      observed_times[potential_times > event_day] <- NA
-    } else {
-      event_day <- event$year * 365
-      observed_times <- potential_times
-      observed_times[potential_times > event_day] <- NA
-    }
+    censor_day <- last_year[i] * 365 + time_offset[i]
+    observed_times <- potential_times
+    observed_times[!is.na(potential_times) & potential_times > censor_day] <- NA
 
     observed_grades <- potential_grades
     observed_grades[is.na(observed_times)] <- NA
 
     grades_mat[i, ] <- observed_grades
-    time_mat[i, ] <- observed_times
-    max_time[i] <- as.integer(min(event_day, max_day))
+    time_mat[i, ] <- as.integer(observed_times)
+    max_time[i] <- as.integer(censor_day)
 
-    if (all(is.na(observed_times))) {
-      last_exam_year[i] <- NA_integer_
+    leaver <- event$type %in% c(2L, 3L)
+    last_exam_year[i] <- if (
+      !is.finite(year_complete) || (is.null(YEAR_COMPLETE) && leaver)
+    ) {
+      100L
     } else {
-      last_exam_year[i] <- as.integer(ceiling(
-        max(observed_times, na.rm = TRUE) / 365
-      ))
+      as.integer(year_complete)
     }
   }
 
-  first_year <- rep(1L, N_STUDENTS)
   student_ids <- rownames(grades_mat)
   exam_ids <- colnames(grades_mat)
   grade_ids <- paste0("grade_", seq_len(N_GRADES))
+
+  if (!CHECK) {
+    return(list(
+      gradesMat = grades_mat,
+      timeMat = time_mat,
+      todoMat = todo_mat,
+      outcome = outcomes,
+      first_year = first_year,
+      last_year = last_year,
+      yle = last_exam_year,
+      max_time = max_time,
+      X = covariates,
+      params = params,
+      latent = latent_mat
+    ))
+  }
 
   data_obj <- check_data(
     GRADES = grades_mat,
@@ -288,4 +354,61 @@ simulate_crirt_data <- function(
   data_obj$latent <- latent_mat
 
   data_obj
+}
+
+#' Simulate a dataset from a fitted model, reusing its design
+#'
+#' Generates grades, times, outcomes and censoring from the parameters of `FIT`,
+#' keeping the study plan, covariates, enrolment years and observation windows of
+#' its students. Parameters are held at their estimates; nothing is re-estimated.
+#'
+#' @param FIT Output from [fit_EM] or [fit_BFGS].
+#' @param SEED Random seed used for reproducibility.
+#' @param ADMIN_YEAR Last year of follow up per student. Defaults to the model's `yb`.
+#' @param YEAR_OFFSET Day of the year separating two academic years.
+#'
+#' @return A list shaped like `FIT`, whose `data` element carries the simulated
+#'   grades, times, outcomes, last years and completion years, ready for [compute_map()].
+#'
+#' @export
+simulate_from_fit <- function(FIT, SEED, ADMIN_YEAR = NULL, YEAR_OFFSET = 0L) {
+  np <- FIT$data$data_dims
+
+  sim <- simulate_crirt_data(
+    N_STUDENTS = np$n_obs,
+    N_EXAMS = np$n_exams,
+    N_GRADES = np$n_grades,
+    MAX_YEAR = np$yb,
+    N_COV = np$n_cov,
+    SEED = SEED,
+    PARAMS = parVec2List(
+      FIT$fit$par,
+      N_GRADES = np$n_grades,
+      N_EXAMS = np$n_exams,
+      N_COV = np$n_cov,
+      YB = np$yb
+    ),
+    TODO = FIT$data$todoMat,
+    X = FIT$data$X,
+    FIRST_YEAR = FIT$data$first_year,
+    ADMIN_YEAR = ADMIN_YEAR,
+    MAX_TIME_OFFSET = FIT$data$max_time - FIT$data$last_year * 365,
+    YEAR_OFFSET = YEAR_OFFSET,
+    CHECK = FALSE
+  )
+
+  dat <- FIT$data
+  dimnames(sim$gradesMat) <- dimnames(dat$gradesMat)
+  dimnames(sim$timeMat) <- dimnames(dat$timeMat)
+  dat$gradesMat <- sim$gradesMat
+  dat$timeMat <- sim$timeMat
+  dat$outcome <- stats::setNames(sim$outcome, names(dat$outcome))
+  dat$last_year <- stats::setNames(sim$last_year, names(dat$last_year))
+  dat$yle <- stats::setNames(sim$yle, names(dat$yle))
+  dat$max_time <- stats::setNames(sim$max_time, names(dat$max_time))
+
+  out <- FIT
+  out$data <- dat
+  out$latent <- sim$latent
+  out
 }

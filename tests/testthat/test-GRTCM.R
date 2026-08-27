@@ -1,7 +1,7 @@
 n <- 10
 set.seed(123)
 
-### gen params ####
+# generate parameters
 n_grades <- 4L
 n_exams  <- 3L
 n_cov    <- 2
@@ -29,24 +29,20 @@ parList <- parVec2List(
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 irtMat <- parList$irt
-# theta_irt <- irtMat2Vec(irtMat)
 X <- matrix(rnorm(n*n_cov), n, n_cov)
 latMat <- matrix(rnorm(n*2), n, 2)
 nodes <- expand.grid(c(1,-1),c(1,-1))
 weights <- rep(.25, 4)
 
-#### sim grades ####
+# simulate grades
 gradesMat <- matrix(0, n, n_exams)
 
 for (i in 1:n) {
   for (e in 1:n_exams) {
-    #linear predictor exams X grades
     linp <- irtMat[e, n_grades+1] * latMat[i,1] - irtMat[e, 1:n_grades]
 
-    # probabilities of greater grades
     pgg <- exp(linp)/(1+exp(linp))
 
-    # probabilities of grades
     pg <- c(pgg[1:(n_grades-1)] - pgg[2:n_grades], pgg[n_grades])
     gradesMat[i,e] <- which(rmultinom(n = 1, size=1, prob = c(1-sum(pg), pg))==1)-1
 
@@ -55,7 +51,7 @@ for (i in 1:n) {
 
 
 
-#### sim times ####
+# simulate times
 set.seed(123)
 timeMat <- matrix(0, n, n_exams)
 for (i in 1:n) {
@@ -69,17 +65,17 @@ for (i in 1:n) {
 }
 timeMat[gradesMat==0] <- NA
 
-#### mat to-do ####
+# study plan
 todoMat <- matrix(1, n, n_exams)
 
-#### censoring ####
+# censoring
 max_day <- max(timeMat, na.rm = TRUE)+10
 timeMat[timeMat>max_day] <- NA
 obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0
 
 
-##### TEST GRTCM CLASS #####
+# grtcm class
 RFUN <- function(x, ID, COVARIATES=X[ID,], LATPARFLAG, LAT_POINTS, GRFLAG=FALSE){
   ab <- LAT_POINTS[1]
   sp <- LAT_POINTS[2]
@@ -136,7 +132,7 @@ examLik <- function(x, SPEED, ABILITY, LATPARFLAG, COVARIATES, OUT="ll",  ...){
     return(obj$grll[1:(dim_irt+dim_lat)])
   }
 }
-#### TEST GRTCM QUADRATURE ####
+# quadrature likelihood
 for (i in 1:n) {
   ll=0
   for (exam in 1:n_exams) {
@@ -149,7 +145,6 @@ for (i in 1:n) {
       OUT="ll"
     )
 
-    # cat("\nR| Exam", exam, ":", ell, "\n")
     ll <- ll + ell
 
 
@@ -157,7 +152,7 @@ for (i in 1:n) {
   }
 
 
-  test_that(paste0("Check student ",i, " full exam list likelihood"), {
+  test_that(paste0("student ",i, " exam list likelihood without latent regression"), {
     expect_equal(
       RFUN(x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,]),
       ll
@@ -167,7 +162,6 @@ for (i in 1:n) {
 
   })
 
-  ### LATPARFLAG = TRUE
   ll=0
   for (exam in 1:n_exams) {
 
@@ -179,7 +173,6 @@ for (i in 1:n) {
       OUT="ll"
     )
 
-    # cat("\nR| Exam", exam, ":", ell, "\n")
     ll <- ll + ell
 
 
@@ -187,7 +180,7 @@ for (i in 1:n) {
   }
 
 
-  test_that(paste0("Check student ",i, " full exam list likelihood"), {
+  test_that(paste0("student ",i, " exam list likelihood with latent regression"), {
     expect_equal(
       RFUN(x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,]),
       ll
@@ -199,17 +192,16 @@ for (i in 1:n) {
 
 }
 
-#### Check gr ####
-
+# marginal gradient
 for (i in 1:n) {
-  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+  test_that(paste0("student ",i, " gradient without latent regression"), {
     expect_equal(
       numDeriv::grad(RFUN, x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,]),
       RFUN(x=theta, ID=i, LATPARFLAG = FALSE, LAT_POINTS = latMat[i,], GRFLAG=TRUE)
     )
   })
 
-  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+  test_that(paste0("student ",i, " gradient with latent regression"), {
     expect_equal(
       numDeriv::grad(RFUN, x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,]),
       RFUN(x=theta, ID=i, LATPARFLAG = TRUE, LAT_POINTS = latMat[i,], GRFLAG=TRUE)
@@ -218,79 +210,7 @@ for (i in 1:n) {
 
 }
 
-# ##### TESTS ####
-# RFUN <- function(x, ROTATE){
-#   GRTCM_GH(
-#     THETA = x,
-#     EXAMS_GRADES = gradesMat,
-#     EXAMS_DAYS = timeMat,
-#     EXAMS_SET = todoMat,
-#     EXAMS_OBSFLAG = obsMat,
-#     COVARIATES = X,
-#     MAX_DAY = rep(max_day,n),
-#     GRID = as.matrix(nodes),
-#     WEIGHTS = weights,
-#     N_GRADES = n_grades,
-#     N_EXAMS = n_exams,
-#     GRFLAG = FALSE,
-#     ROTGRID = ROTATE
-#   )$ll
-# }
-#
-# RFUN(theta[1:(dim_irt+dim_lat)], TRUE)
-#
-# #### check gradient
-# test_that("Check gradient derivative without node rotation", {
-#
-#
-#   fit <- GRTCM_GH(
-#     THETA = theta,
-#     EXAMS_GRADES = gradesMat,
-#     EXAMS_DAYS = timeMat,
-#     EXAMS_SET = todoMat,
-#     EXAMS_OBSFLAG = obsMat,
-#     COVARIATES = X,
-#     MAX_DAY = rep(max_day,n),
-#     GRID = as.matrix(nodes),
-#     WEIGHTS = weights,
-#     N_GRADES = n_grades,
-#     N_EXAMS = n_exams,
-#     GRFLAG = TRUE,
-#     ROTGRID = FALSE
-#   )
-#
-#   expect_equal(
-#     numDeriv::grad(RFUN, x = theta, ROTATE = FALSE),
-#     fit$gr
-#   )
-# })
-#
-# test_that("Check gradient derivative with node rotation", {
-#
-#   fit <- GRTCM_GH(
-#     THETA = theta,
-#     EXAMS_GRADES = gradesMat,
-#     EXAMS_DAYS = timeMat,
-#     EXAMS_SET = todoMat,
-#     EXAMS_OBSFLAG = obsMat,
-#     COVARIATES = X,
-#     MAX_DAY = rep(max_day,n),
-#     GRID = as.matrix(nodes),
-#     WEIGHTS = weights,
-#     N_GRADES = n_grades,
-#     N_EXAMS = n_exams,
-#     GRFLAG = TRUE,
-#     ROTGRID = TRUE
-#   )
-#
-#   expect_equal(
-#     numDeriv::grad(RFUN, x = theta, ROTATE = TRUE),
-#     fit$gr,
-#     tolerance = 1e-4
-#   )
-# })
-#
-##### TESTS ####
+# marginal gradient across students
 RFUN <- function(x, LATPARFLAG){
   cpp_GQ(
     THETA = x,
@@ -317,8 +237,7 @@ RFUN <- function(x, LATPARFLAG){
 
 RFUN(theta, TRUE)
 
-#### check gradient
-test_that("Check gradient derivative without node rotation", {
+test_that("marginal gradient without latent regression", {
 
 
   fit <- cpp_GQ(
@@ -349,7 +268,7 @@ test_that("Check gradient derivative without node rotation", {
   )
 })
 
-test_that("Check gradient derivative with node rotation", {
+test_that("marginal gradient with latent regression", {
 
 
   fit <- cpp_GQ(
@@ -382,7 +301,7 @@ test_that("Check gradient derivative with node rotation", {
 
 
 
-######## complete loglik tests ######
+# complete loglik gradient
 RFUN <- function(x, ID, COVARIATES=X[ID,], LAT_POINTS, GRFLAG=FALSE){
   obj <- cpp_grtcm_class(
     THETA = x,
@@ -407,7 +326,7 @@ RFUN <- function(x, ID, COVARIATES=X[ID,], LAT_POINTS, GRFLAG=FALSE){
 }
 
 for (i in 1:n) {
-  test_that(paste0("Check student ",i, " gradient LATPARFLAG=FALSE"), {
+  test_that(paste0("student ",i, " complete loglik gradient"), {
     expect_equal(
       numDeriv::grad(RFUN, x=theta, ID=i, LAT_POINTS = latMat[i,]),
       RFUN(x=theta, ID=i, LAT_POINTS = latMat[i,], GRFLAG=TRUE),

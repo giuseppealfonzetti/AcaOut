@@ -12,7 +12,15 @@ simulate_crirt_data(
   N_COV = 2,
   SEED = 123,
   PARAMS = NULL,
-  LATMAT = NULL
+  LATMAT = NULL,
+  TODO = NULL,
+  X = NULL,
+  FIRST_YEAR = NULL,
+  ADMIN_YEAR = NULL,
+  YEAR_COMPLETE = NULL,
+  MAX_TIME_OFFSET = NULL,
+  YEAR_OFFSET = 0L,
+  CHECK = TRUE
 )
 }
 \arguments{
@@ -31,6 +39,24 @@ simulate_crirt_data(
 \item{PARAMS}{Optional list of model parameters as returned by \code{\link[=parVec2List]{parVec2List()}}.}
 
 \item{LATMAT}{Optional \verb{N_STUDENTS x 2} matrix of latent ability and speed scores.}
+
+\item{TODO}{Optional \verb{N_STUDENTS x N_EXAMS} study plan; exams left out stay missing.}
+
+\item{X}{Optional \verb{N_STUDENTS x N_COV} covariate matrix. Generated when missing.}
+
+\item{FIRST_YEAR}{Optional enrolment years. Dropout and transfer start from that year.}
+
+\item{ADMIN_YEAR}{Optional last year of follow up per student. Defaults to \code{MAX_YEAR}.}
+
+\item{YEAR_COMPLETE}{Optional year each student completes the plan, \code{100} when never.
+Derived from the simulated exam times when missing.}
+
+\item{MAX_TIME_OFFSET}{Optional days added to \code{last_year * 365} for the last observable
+day. Defaults to zero.}
+
+\item{YEAR_OFFSET}{Day of the year separating two academic years. Defaults to zero.}
+
+\item{CHECK}{Set to FALSE to skip \code{\link[=check_data]{check_data()}} and return the raw simulated bundle.}
 }
 \value{
 A list structured as the output of \code{\link[=check_data]{check_data()}}, with the

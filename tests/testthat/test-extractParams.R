@@ -1,4 +1,3 @@
-#### IRT ####
 n_grades <- 4
 n_exams <- 3
 

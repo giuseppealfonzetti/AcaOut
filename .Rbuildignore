@@ -5,3 +5,6 @@
 ^cran-comments\.md$
 test-Michela.R
 ^\.github$
+^doc$
+^Meta$
+^vignettes/articles$

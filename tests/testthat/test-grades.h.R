@@ -38,7 +38,7 @@ mat <- irtVec2Mat(
 
 
 
-############################
+# reference implementation
 RpGreaterGrades <- function(GRADE, EXAM,
                              THETA,
                              N_GRADES,
@@ -98,11 +98,11 @@ RpGrade <- function(GRADE, EXAM,
     return(obj$gr[1:(dim_irt+dim_lat)])
   }
 }
-#### test grades probabilities output value and gradient ####
+# probabilities and gradient
 set.seed(123)
 abilities <- sort(rnorm(3, 0, 2), decreasing = T)
 
-# without structural parameters
+# without latent regression
 for (abi_index in 1:length(abilities)) {
   for (grade in 1:n_grades) {
     for (exam in 1:n_exams) {
@@ -205,9 +205,6 @@ for (abi_index in 1:length(abilities)) {
           LATPARFLAG=FALSE
         )
 
-        # test_that(paste0("pGreaterGrades() decreases with lower ability | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
-        #   expect_true(probprevGG>probGG)
-        # })
       }
 
 
@@ -278,7 +275,7 @@ for (abi_index in 1:length(abilities)) {
   }
 }
 
-# with structural parameters
+# with latent regression
 for (abi_index in 1:length(abilities)) {
   for (grade in 1:n_grades) {
     for (exam in 1:n_exams) {
@@ -370,9 +367,6 @@ for (abi_index in 1:length(abilities)) {
           LATPARFLAG=TRUE
         )
 
-        # test_that(paste0("pGreaterGrades() decreases with lower ability | exam ", exam, ", grade ", grade, ", abi_index", abi_index ),{
-        #   expect_true(probprevGG>probGG)
-        # })
       }
 
 
@@ -462,7 +456,7 @@ test_that("pGreaterGrades() log extreme ability", {
           LATPARFLAG=FALSE
         )
 
-        # check for finite values
+        # values stay finite
         expect_true(is.finite(prob))
 
       }

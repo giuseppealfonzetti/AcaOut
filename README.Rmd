@@ -81,7 +81,7 @@ tinyplot::tinyplot(
 
 The package provides two fitting functions, `fit_EM()` and `fit_BFGS()`, which, given the quadrature grid and weights, allow to fit the joint model for outcomes and exams:
 
-```{r warning=FALSE, cache=TRUE}
+```{r warning=FALSE}
 
 # Setup quadrature
 nq <- 12

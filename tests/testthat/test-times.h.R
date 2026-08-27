@@ -37,7 +37,7 @@ mat <- irtVec2Mat(
 
 
 
-#### test times probabilities output values #####
+# time probabilities
 set.seed(111)
 speeds <- sort(rnorm(3,0,2), decreasing=T)
 FUNTIME <- function(x, CDFFLAG, LOGFLAG, SPEED, ABILITY=0, ROTATED=FALSE, OUT="prob"){
@@ -109,10 +109,6 @@ for (speed_index in 1:length(speeds)) {
           LOGFLAG = FALSE,
           SPEED = speeds[speed_index-1]
         )
-        # test_that(paste0("pTimeExam() val decreases with decresing speeds, speed:", round(speeds[speed_index],2), ", day:", round(day,2), ", exam:", exam),
-        #           {
-        #             expect_true(valprev>val)
-        #           })
       }
 
 
@@ -158,8 +154,7 @@ for (speed_index in 1:length(speeds)) {
 
 }
 
-########## gradient tests ##########
-
+# gradient tests
 n <- 10
 n_grades <- 4L
 n_exams  <- 3L
@@ -190,7 +185,7 @@ parList <- parVec2List(
   LABS_GRADES = labs_grades)
 irtMat <- parList$irt
 latMat <- matrix(c(rnorm((n-1)*2), -5,5),n,2, byrow = TRUE)
-#### sim times ####
+# simulate times
 set.seed(123)
 timeMat <- matrix(NA, n, n_exams)
 for (i in 1:n) {
@@ -205,8 +200,7 @@ for (i in 1:n) {
 timeMat <- ceiling(timeMat)
 
 
-#### checks #####
-
+# checks
 FUNTIME <- function(x, EXAM, DAY, CDFFLAG, LOGFLAG, SPEED, COVARIATES=X, ABILITY=0, LATPARFLAG=FALSE, OUT="prob"){
   ab <- ABILITY
   sp <- SPEED

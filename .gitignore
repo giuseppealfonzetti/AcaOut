@@ -11,3 +11,9 @@ test.qmd
 test.html
 test_files/
 experiments/
+
+/.quarto/
+inst/doc
+/doc/
+/Meta/
+/ref/

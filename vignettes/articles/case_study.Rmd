@@ -277,7 +277,7 @@ fullBFGS <- fit_BFGS(
 The function `compute_stderr()` compute the standard errors arrange all parameters in an easy to inspect table:
 
 ```{r eval=FALSE}
-fullSE <- compute_stderr(fullBFGS, METHOD = "sample", TIDY = TRUE)
+fullSE <- compute_stderr(fullBFGS, METHOD = "sandwich", TIDY = TRUE)
 ```
 
 We can compute the maximum a posteriori estimates of the latent ability and speed by using `compute_map()`, 
